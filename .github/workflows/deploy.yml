@@ -4,7 +4,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main  # Change this if your default branch is different
+      - earth  # Change this if your default branch is different
 
 permissions:
   contents: write
