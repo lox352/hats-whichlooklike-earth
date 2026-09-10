@@ -7,6 +7,59 @@ import seedrandom from "seedrandom";
 
 const defaultColour: RGB = [255, 255, 255];
 
+export type DecreaseMethod = "Hemispherical" | "Pyramidal";
+
+/** The polygonal base used by the pyramidal decrease. */
+export const pyramidalBase = 5;
+
+/** A hat needs a cast-on row, some body, and room to decrease. */
+export const minimumStitchesPerRow = 20;
+export const minimumNumberOfRows = 3;
+
+export interface DesignProblem {
+  field: "stitchesPerRow" | "numberOfRows";
+  message: string;
+}
+
+/**
+ * Checks a design against the invariants the machine relies on, so the UI can
+ * report them inline instead of duplicating the rules.
+ */
+export const validateDesign = (
+  stitchesPerRow: number,
+  numberOfRows: number,
+  decreaseMethod: DecreaseMethod
+): DesignProblem[] => {
+  const problems: DesignProblem[] = [];
+
+  if (!Number.isInteger(stitchesPerRow) || stitchesPerRow < minimumStitchesPerRow) {
+    problems.push({
+      field: "stitchesPerRow",
+      message: `Use at least ${minimumStitchesPerRow} stitches per row.`,
+    });
+  } else if (
+    decreaseMethod === "Pyramidal" &&
+    stitchesPerRow % (pyramidalBase * 2) !== 0
+  ) {
+    problems.push({
+      field: "stitchesPerRow",
+      message:
+        `The pyramidal decrease needs a stitch count divisible by ${pyramidalBase * 2}. ` +
+        `Try ${Math.round(stitchesPerRow / (pyramidalBase * 2)) * (pyramidalBase * 2)}, ` +
+        "or switch to the hemispherical decrease.",
+    });
+  }
+
+  if (!Number.isInteger(numberOfRows) || numberOfRows < minimumNumberOfRows) {
+    problems.push({
+      field: "numberOfRows",
+      message: `Use at least ${minimumNumberOfRows} rows before decreasing.`,
+    });
+  }
+
+  return problems;
+};
+
 class KnittingMachine {
   private stitchesPerRow: number;
   private rng: () => number;
@@ -217,7 +270,8 @@ class KnittingMachine {
   public decreasePyramidically(polygonalBase: number): KnittingMachine {
     if (this.stitchesPerRow % (polygonalBase * 2) !== 0) {
       throw new Error(
-        "Polygonal base must be twice a factor of the number of stitches per row"
+        `A pyramidal decrease with base ${polygonalBase} needs a stitch count ` +
+          `divisible by ${polygonalBase * 2}, but got ${this.stitchesPerRow}`
       );
     }
     const numberOfDecreases = this.stitchesPerRow / (polygonalBase * 2);

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getStitches } from "../helpers/stitches";
 import { Stitch } from "../types/Stitch";
@@ -10,6 +10,11 @@ import {
 } from "../constants";
 import DestinationType from "../types/DestinationType";
 import { OrientationParameters } from "../types/OrientationParameters";
+import {
+  DecreaseMethod,
+  DesignProblem,
+  validateDesign,
+} from "../types/KnittingMachine";
 
 interface PatternProps {
   setStitches: React.Dispatch<React.SetStateAction<Stitch[]>>;
@@ -22,13 +27,15 @@ interface PatternProps {
 interface InputFieldProps {
   label: string;
   value: number;
-  valueSetter: React.Dispatch<React.SetStateAction<number>>;
+  valueSetter: (value: number) => void;
+  problem?: string;
 }
 
 const InputField: React.FC<InputFieldProps> = ({
   label,
   value,
   valueSetter,
+  problem,
 }) => (
   <div style={{ marginBottom: "15px" }}>
     <label>
@@ -38,8 +45,18 @@ const InputField: React.FC<InputFieldProps> = ({
         type="number"
         value={value === 0 ? "" : value}
         onChange={(e) => valueSetter(Number(e.target.value))}
+        aria-invalid={problem ? true : undefined}
+        style={problem ? { outline: "2px solid #f44336" } : undefined}
       />
     </label>
+    {problem && (
+      <div
+        role="alert"
+        style={{ color: "#ff9a91", fontSize: "0.85rem", marginTop: "4px" }}
+      >
+        {problem}
+      </div>
+    )}
   </div>
 );
 
@@ -141,6 +158,7 @@ const h3Style = {
   marginTop: "5px",
   marginBottom: "5px",
 };
+
 interface ToggleAdvancedOptionsProps {
   showAdvancedOptions: boolean;
   setShowAdvancedOptions: React.Dispatch<React.SetStateAction<boolean>>;
@@ -150,7 +168,9 @@ const ToggleAdvancedOptions: React.FC<ToggleAdvancedOptionsProps> = ({
   showAdvancedOptions,
   setShowAdvancedOptions,
 }) => (
-  <h1
+  <button
+    type="button"
+    aria-expanded={showAdvancedOptions}
     style={{
       backgroundColor: "transparent",
       color: "white",
@@ -162,12 +182,17 @@ const ToggleAdvancedOptions: React.FC<ToggleAdvancedOptionsProps> = ({
       display: "flex",
       alignItems: "center",
       fontSize: "1.25rem",
+      fontWeight: 600,
       borderBottom: showAdvancedOptions ? "1px solid white" : "none",
+      borderRadius: 0,
+      width: "100%",
+      textAlign: "left",
     }}
     onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
   >
     {showAdvancedOptions ? "Hide Advanced Options" : "Show Advanced Options"}
     <span
+      aria-hidden="true"
       style={{
         marginLeft: "10px",
         transform: showAdvancedOptions ? "rotate(180deg)" : "rotate(0deg)",
@@ -176,8 +201,13 @@ const ToggleAdvancedOptions: React.FC<ToggleAdvancedOptionsProps> = ({
     >
       ▼
     </span>
-  </h1>
+  </button>
 );
+
+const problemFor = (
+  problems: DesignProblem[],
+  field: DesignProblem["field"]
+) => problems.find((problem) => problem.field === field)?.message;
 
 const Design: React.FC<PatternProps> = ({
   setStitches,
@@ -189,18 +219,15 @@ const Design: React.FC<PatternProps> = ({
   const [stitchesPerRow, setStitchesPerRow] = useState(defaultStitchesPerRow);
   const [numberOfRows, setNumberOfRows] = useState(defaultNumberOfRows);
   const [locationType, setLocationType] = useState<LocationType>("North Pole");
-  const [decreaseMethod, setDecreaseMethod] = useState<
-    "Hemispherical" | "Pyramidal"
-  >("Pyramidal");
+  const [decreaseMethod, setDecreaseMethod] =
+    useState<DecreaseMethod>("Pyramidal");
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [showProblems, setShowProblems] = useState(false);
 
-  const handleDecreaseMethodChange = (
-    e: React.ChangeEvent<HTMLSelectElement>
-  ) => {
-    const selectedDecreaseMethod = e.target.value as
-      | "Hemispherical"
-      | "Pyramidal";
-    setDecreaseMethod(selectedDecreaseMethod);
-  };
+  const problems = useMemo(
+    () => validateDesign(stitchesPerRow, numberOfRows, decreaseMethod),
+    [stitchesPerRow, numberOfRows, decreaseMethod]
+  );
 
   const handleLocationChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedLocation = e.target.value;
@@ -237,25 +264,23 @@ const Design: React.FC<PatternProps> = ({
   };
 
   const handleDestinationChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedDestination = e.target.value;
     setOrientationParameters({
       ...orientationParameters,
-      targetDestination: selectedDestination as DestinationType,
+      targetDestination: e.target.value as DestinationType,
     });
   };
 
   const handleViewAndColour = () => {
-    if (decreaseMethod === "Pyramidal" && stitchesPerRow % 10 !== 0) {
-      alert(
-        "The number of stitches per row to be divisible by 10. Change the decrease method to 'Hemispherial' under 'Advanced Options' or choose a different number of stitches per row."
-      );
+    if (problems.length > 0) {
+      setShowProblems(true);
+      // The pyramidal rule lives under advanced options, so open it to show
+      // the user where the fix is.
+      setShowAdvancedOptions(true);
       return;
     }
     setStitches(getStitches(stitchesPerRow, numberOfRows, decreaseMethod));
     navigate("/render");
   };
-
-  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
   return (
     <div style={{ textAlign: "left", padding: "20px" }}>
@@ -265,11 +290,15 @@ const Design: React.FC<PatternProps> = ({
         label="Stitches per row"
         value={stitchesPerRow}
         valueSetter={setStitchesPerRow}
+        problem={
+          showProblems ? problemFor(problems, "stitchesPerRow") : undefined
+        }
       />
       <InputField
         label="Number of rows before decreasing"
         value={numberOfRows}
         valueSetter={setNumberOfRows}
+        problem={showProblems ? problemFor(problems, "numberOfRows") : undefined}
       />
 
       <div
@@ -283,7 +312,12 @@ const Design: React.FC<PatternProps> = ({
         <h2 style={h2Style}>Decrease Method</h2>
         <h3 style={h3Style}>Choose a Decrease Method</h3>
         <div style={{ marginBottom: "10px" }}>
-          <select value={decreaseMethod} onChange={handleDecreaseMethodChange}>
+          <select
+            value={decreaseMethod}
+            onChange={(e) =>
+              setDecreaseMethod(e.target.value as DecreaseMethod)
+            }
+          >
             <option value="Hemispherical">Hemispherical</option>
             <option value="Pyramidal">Pyramidal</option>
           </select>
