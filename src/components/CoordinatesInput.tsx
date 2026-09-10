@@ -4,31 +4,17 @@ import { GlobalCoordinates } from "../types/GlobalCoordinates";
 interface CoordinatesInputProps {
   coordinates: GlobalCoordinates;
   setCoordinates: (coordinates: GlobalCoordinates) => void;
-  disabled: boolean;
+  disabled?: boolean;
 }
-
-const labelStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "flex-start",
-  marginRight: "20px",
-};
 
 const CoordinatesInput: React.FC<CoordinatesInputProps> = ({
   coordinates,
   setCoordinates,
-  disabled,
+  disabled = false,
 }) => (
-  <div
-    style={{
-      display: "flex",
-      justifyContent: "flex-start",
-      alignItems: "baseline",
-      marginBottom: "20px",
-    }}
-  >
-    <label style={labelStyle}>
-      Latitude
+  <div className="design-row">
+    <label>
+      <span className="design-field-label">Latitude</span>
       <input
         type="number"
         value={coordinates.latitude}
@@ -38,12 +24,11 @@ const CoordinatesInput: React.FC<CoordinatesInputProps> = ({
         onChange={(e) =>
           setCoordinates({ ...coordinates, latitude: Number(e.target.value) })
         }
-        style={{ marginTop: "5px" }}
         disabled={disabled}
       />
     </label>
-    <label style={{ ...labelStyle, marginRight: 0 }}>
-      Longitude
+    <label>
+      <span className="design-field-label">Longitude</span>
       <input
         type="number"
         value={coordinates.longitude}
@@ -53,7 +38,6 @@ const CoordinatesInput: React.FC<CoordinatesInputProps> = ({
         onChange={(e) =>
           setCoordinates({ ...coordinates, longitude: Number(e.target.value) })
         }
-        style={{ marginTop: "5px" }}
         disabled={disabled}
       />
     </label>

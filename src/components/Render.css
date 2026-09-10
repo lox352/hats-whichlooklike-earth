@@ -1,0 +1,63 @@
+/*
+ * The stage the hat settles on.
+ *
+ * Deliberately a deep ground rather than the page's paper, in both themes.
+ * Two of the four yarns are near-white (glacier and ice shelf) and would wash
+ * out completely against cream; against this they all read. It also gives the
+ * hat the feel of a specimen in a case, which suits the atlas.
+ */
+.hat-stage {
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--radius-lg);
+  background: radial-gradient(
+      130% 100% at 50% 8%,
+      #2a3c4d 0%,
+      #1b2733 55%,
+      #141c25 100%
+    );
+  box-shadow: inset 0 1px 12px rgba(0, 0, 0, 0.35), var(--shadow-sm);
+  overflow: hidden;
+}
+
+.render-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  margin: 16px 0 0;
+  min-height: 24px;
+}
+
+/* A slow sweep while something is happening, still while it is not. */
+.render-status-working::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ocean-deep);
+  animation: render-pulse 1.4s ease-in-out infinite;
+  flex: none;
+}
+
+@keyframes render-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.render-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--rule);
+}

@@ -2,6 +2,9 @@ import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import HatCanvas from "../ChainModel/HatCanvas";
 import { readPattern } from "../helpers/pattern-storage";
+import PageLayout from "./ui/PageLayout";
+import Button from "./ui/Button";
+import "./Render.css";
 
 const SavedRender: React.FC = () => {
   const navigate = useNavigate();
@@ -13,56 +16,50 @@ const SavedRender: React.FC = () => {
 
   if (!pattern || pattern.stitches.length === 0) {
     return (
-      <div style={{ textAlign: "left", padding: "20px" }}>
-        <h1 style={{ fontSize: "2.5rem", marginBottom: "20px" }}>
-          Pattern not found
-        </h1>
-        <button
-          style={{
-            backgroundColor: "#3f51b5",
-            color: "white",
-            padding: "10px 20px",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-          onClick={() => navigate("/")}
-        >
-          Back to Homepage
-        </button>
-      </div>
+      <PageLayout title="Pattern not found">
+        <p>
+          This pattern is no longer saved in this browser. Saved patterns live
+          only on the device that made them.
+        </p>
+        <Button variant="primary" onClick={() => navigate("/")}>
+          Back to your hats
+        </Button>
+      </PageLayout>
     );
   }
 
   return (
-    <div style={{ textAlign: "left", padding: "20px" }}>
-      <h1 style={{ fontSize: "2.5rem", marginBottom: "20px" }}>Pre-dyed Hat</h1>
-      <HatCanvas
-        stitches={pattern.stitches}
-        simulationActive={false}
-        onAnyStitchRendered={() => setAnyStitchRendered(true)}
-      />
-      <p aria-live="polite" style={{ fontStyle: "italic" }}>
-        {!anyStitchRendered
-          ? "Summoning stitches..."
-          : "Pinch and zoom to see the pattern in more detail"}
+    <PageLayout
+      title={pattern.name ?? "Your hat"}
+      lede="Drag to turn it, scroll to zoom."
+    >
+      <div className="hat-stage">
+        <HatCanvas
+          stitches={pattern.stitches}
+          simulationActive={false}
+          onAnyStitchRendered={() => setAnyStitchRendered(true)}
+        />
+      </div>
+      <p
+        aria-live="polite"
+        className={`render-status${anyStitchRendered ? "" : " render-status-working"}`}
+      >
+        {anyStitchRendered
+          ? "Pinch and zoom to see the stitches."
+          : "Summoning stitches..."}
       </p>
-      <div style={{ marginTop: "10px" }}>
-        <button
-          style={{
-            backgroundColor: "#3f51b5",
-            color: "white",
-            padding: "10px 20px",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
+      <div className="render-actions">
+        <Button
+          variant="primary"
           onClick={() => navigate(`/pattern/${patternId}`)}
         >
-          Go to Pattern
-        </button>
+          Go to the chart
+        </Button>
+        <Button variant="quiet" onClick={() => navigate("/")}>
+          Back to your hats
+        </Button>
       </div>
-    </div>
+    </PageLayout>
   );
 };
 

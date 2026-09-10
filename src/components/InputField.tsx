@@ -21,10 +21,9 @@ const InputField: React.FC<InputFieldProps> = ({
   max,
   step,
 }) => (
-  <div style={{ marginBottom: "15px" }}>
+  <div className="design-field">
     <label>
-      {label}
-      <br />
+      <span className="design-field-label">{label}</span>
       <input
         type="number"
         value={value === 0 ? "" : value}
@@ -33,19 +32,12 @@ const InputField: React.FC<InputFieldProps> = ({
         step={step}
         onChange={(e) => valueSetter(Number(e.target.value))}
         aria-invalid={problem ? true : undefined}
-        style={problem ? { outline: "2px solid #f44336" } : undefined}
+        className={problem ? "design-invalid" : undefined}
       />
     </label>
-    {hint && !problem && (
-      <div style={{ fontSize: "0.85rem", opacity: 0.7, marginTop: "4px" }}>
-        {hint}
-      </div>
-    )}
+    {hint && !problem && <div className="design-hint">{hint}</div>}
     {problem && (
-      <div
-        role="alert"
-        style={{ color: "#ff9a91", fontSize: "0.85rem", marginTop: "4px" }}
-      >
+      <div role="alert" className="design-problem">
         {problem}
       </div>
     )}

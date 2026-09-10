@@ -4,6 +4,120 @@
  * so printing uses the SVG chart instead, scaled to the sheet.
  */
 
+/* The chart, as a plate in an atlas. */
+.chart {
+  display: grid;
+  gap: 0;
+  /* Hug the chart rather than stretching an 20-column plate across the page,
+     but still scroll when the round is wider than the viewport. */
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--paper-sunken);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 6px;
+}
+
+.chart-cell {
+  position: relative;
+  text-align: center;
+  /* Hairline graticule between stitches, heavier every fifth. */
+  border-right: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+}
+
+.chart-cell-major-col {
+  border-right-color: color-mix(in srgb, var(--ink) 42%, transparent);
+}
+
+.chart-cell-major-row {
+  border-bottom-color: color-mix(in srgb, var(--ink) 42%, transparent);
+}
+
+/* A knitted stitch reads as sunken and muted, not merely faded. */
+.chart-cell-done::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--paper-sunken) 62%, transparent);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
+}
+
+.chart-cell-next {
+  z-index: 3;
+  box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--ink),
+    0 0 10px 3px color-mix(in srgb, var(--ocean) 70%, transparent);
+}
+
+.chart-label {
+  background: var(--paper-sunken);
+  color: var(--ink-faint);
+  font-family: var(--font-mono);
+  font-size: 7px;
+  line-height: 10px;
+  aspect-ratio: 1 / 1;
+  position: relative;
+}
+
+.chart-label-right {
+  text-align: right;
+  padding-left: 2px;
+}
+
+.chart-label-bottom {
+  text-align: left;
+}
+
+/* Decrease marks, drawn with borders on the screen chart. */
+.chart-mark {
+  position: absolute;
+  width: 100%;
+  border-color: color-mix(in srgb, var(--ink) 75%, transparent);
+  pointer-events: none;
+}
+
+.chart-mark-k2tog {
+  top: 14%;
+  left: 15%;
+  height: 100%;
+  border-top: 1px solid;
+  transform: rotate(45deg);
+  transform-origin: -0.5px 0;
+}
+
+.chart-mark-k3tog-a,
+.chart-mark-k3tog-b,
+.chart-mark-k3tog-c {
+  left: calc(-50% - 0.5px);
+  top: 10%;
+  border-right: 1px solid;
+}
+
+.chart-mark-k3tog-a {
+  height: 85%;
+  transform-origin: top right;
+  transform: rotate(20deg);
+}
+
+.chart-mark-k3tog-b {
+  height: 80%;
+}
+
+.chart-mark-k3tog-c {
+  height: 85%;
+  transform-origin: top right;
+  transform: rotate(-20deg);
+}
+
+.chart-caption {
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  margin: 0 0 14px;
+}
+
 .print-only {
   display: none;
 }

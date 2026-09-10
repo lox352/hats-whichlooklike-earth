@@ -7,21 +7,11 @@ import {
 } from "../helpers/written-instructions";
 import { useYarns } from "../useYarns";
 import { cssColour, displayYarn } from "../helpers/yarn-preference";
+import Button from "./ui/Button";
 
 interface WrittenInstructionsProps {
   stitches: Stitch[];
 }
-
-const linkStyle: React.CSSProperties = {
-  background: "none",
-  border: "none",
-  padding: 0,
-  color: "#9fb6ff",
-  cursor: "pointer",
-  font: "inherit",
-  fontSize: "0.9rem",
-  textDecoration: "underline",
-};
 
 /**
  * The pattern in words, collapsed by default.
@@ -62,26 +52,21 @@ const WrittenInstructions: React.FC<WrittenInstructionsProps> = ({
 
   return (
     <div className="screen-only" style={{ marginTop: "14px" }}>
-      <button
-        type="button"
-        aria-expanded={open}
-        style={linkStyle}
-        onClick={() => setOpen(!open)}
-      >
+      <Button variant="quiet" aria-expanded={open} onClick={() => setOpen(!open)}>
         {open ? "Hide written instructions" : "Written instructions"}
-      </button>
+      </Button>
 
       {open && (
         <div style={{ marginTop: "10px", maxWidth: "760px" }}>
-          <p style={{ fontSize: "0.85rem", opacity: 0.7, margin: "0 0 10px" }}>
+          <p style={{ fontSize: "var(--text-sm)", color: "var(--ink-faint)", margin: "0 0 10px" }}>
             Row 1 is the cast-on. Each row is read as you knit it, right to
             left. The chart is easier to follow for the picture; this is here
             for counting and for screen readers.
           </p>
-          <button type="button" style={linkStyle} onClick={copy}>
+          <Button variant="quiet" onClick={copy}>
             Copy all rows
-          </button>
-          <span aria-live="polite" style={{ fontSize: "0.9rem", marginLeft: "8px" }}>
+          </Button>
+          <span aria-live="polite" style={{ fontSize: "var(--text-sm)", color: "var(--ink-faint)" }}>
             {copied && "Copied."}
           </span>
           <ol
@@ -91,7 +76,7 @@ const WrittenInstructions: React.FC<WrittenInstructionsProps> = ({
               margin: "12px 0 0",
               maxHeight: "420px",
               overflowY: "auto",
-              border: "1px solid #333",
+              border: "1px solid var(--paper-edge)",
               borderRadius: "6px",
             }}
           >
@@ -100,7 +85,7 @@ const WrittenInstructions: React.FC<WrittenInstructionsProps> = ({
                 key={row.row}
                 style={{
                   padding: "8px 12px",
-                  borderBottom: "1px solid #262626",
+                  borderBottom: "1px solid var(--rule)",
                   fontSize: "0.92rem",
                   display: "flex",
                   gap: "10px",

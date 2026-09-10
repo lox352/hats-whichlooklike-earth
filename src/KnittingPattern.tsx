@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { Stitch } from "./types/Stitch";
 import { layOutStitches, StitchPosition } from "./helpers/pattern-layout";
 import "./KnittingPattern.css";
@@ -13,49 +13,18 @@ interface KnittingPatternProps {
 }
 
 const cellSize = 10;
+/** Every nth grid line is drawn heavier, to make counting easier. */
+const emphasisEvery = 5;
 
-const LabelRight: React.FC<{
+const Label: React.FC<{
   row: number;
   col: number;
+  edge: "right" | "bottom";
   children: React.ReactNode;
-}> = ({ row, col, children }) => (
+}> = ({ row, col, edge, children }) => (
   <div
-    className="grid-label"
-    id={`label-row-${row}-col-${col}`}
-    style={{
-      gridRow: row,
-      gridColumn: col,
-      backgroundColor: "rgb(20, 20, 20)",
-      color: "white",
-      textAlign: "right",
-      aspectRatio: "1 / 1",
-      position: "relative",
-      right: 0,
-      paddingLeft: "2px",
-    }}
-  >
-    {children}
-  </div>
-);
-
-const LabelBottom: React.FC<{
-  row: number;
-  col: number;
-  children: React.ReactNode;
-}> = ({ row, col, children }) => (
-  <div
-    className="grid-label"
-    id={`label-row-${row}-col-${col}`}
-    style={{
-      gridRow: row,
-      gridColumn: col,
-      backgroundColor: "rgb(20, 20, 20)",
-      color: "white",
-      textAlign: "left",
-      aspectRatio: "1 / 1",
-      position: "relative",
-      bottom: 0,
-    }}
+    className={`chart-label chart-label-${edge}`}
+    style={{ gridRow: row, gridColumn: col }}
   >
     {children}
   </div>
@@ -67,84 +36,40 @@ const StitchBox: React.FC<{
   numRows: number;
   numCols: number;
   completed: boolean;
-  isNext?: boolean;
+  isNext: boolean;
   yarns: YarnChoices;
-}> = React.memo(({ stitch, position, numRows, numCols, completed, isNext, yarns }) => (
-  <div
-    id={`stitch-${stitch.id}-row-${position.row}-col-${position.col}`}
-    data-next-stitch={isNext ? "true" : undefined}
-    style={{
-      gridRow: numRows + position.row,
-      gridColumn: numCols + position.col,
-      backgroundColor: cssColour(displayYarn(stitch.colour, yarns).colour),
-      border: "1px solid black",
-      borderLeftWidth: (position.col - 1) % 5 === 0 ? "2px" : "1px",
-      borderTopWidth: (position.row - 1) % 5 === 0 ? "2px" : "1px",
-      textAlign: "center",
-      position: isNext ? "sticky" : "relative",
-      opacity: completed ? 0.4 : 1,
-      // A ring on the next stitch, drawn over its neighbours so it reads
-      // clearly against any yarn colour.
-      boxShadow: isNext
-        ? "0 0 0 2px #fff, 0 0 0 4px #111, 0 0 8px 3px rgba(255,255,255,0.5)"
-        : undefined,
-      zIndex: isNext ? 3 : undefined,
-    }}
-  >
-    {stitch.type === "k2tog" && (
-      <div
-        style={{
-          position: "absolute",
-          top: "14%",
-          left: "15%",
-          width: "100%",
-          height: "100%",
-          borderTop: "1px solid black",
-          transform: "rotate(45deg)",
-          transformOrigin: "-0.5px 0",
-        }}
-      />
-    )}
-    {stitch.type === "k3tog" && (
-      <React.Fragment>
-        <div
-          style={{
-            position: "absolute",
-            left: "calc(-50% - 0.5px)",
-            top: "calc(10%)",
-            width: "100%",
-            height: "85%",
-            borderRight: "1px solid black",
-            transformOrigin: "top right",
-            transform: "rotate(20deg)",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            left: "calc(-50% - 0.5px)",
-            top: "calc(10%)",
-            width: "100%",
-            height: "80%",
-            borderRight: "1px solid black",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            left: "calc(-50% - 0.5px)",
-            top: "calc(10%)",
-            width: "100%",
-            height: "85%",
-            borderRight: "1px solid black",
-            transformOrigin: "top right",
-            transform: "rotate(-20deg)",
-          }}
-        />
-      </React.Fragment>
-    )}
-  </div>
-));
+}> = React.memo(
+  ({ stitch, position, numRows, numCols, completed, isNext, yarns }) => (
+    <div
+      className={[
+        "chart-cell",
+        (position.col - 1) % emphasisEvery === 0 ? "chart-cell-major-col" : "",
+        (position.row - 1) % emphasisEvery === 0 ? "chart-cell-major-row" : "",
+        completed ? "chart-cell-done" : "",
+        isNext ? "chart-cell-next" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      data-next-stitch={isNext ? "true" : undefined}
+      style={{
+        gridRow: numRows + position.row,
+        gridColumn: numCols + position.col,
+        backgroundColor: cssColour(displayYarn(stitch.colour, yarns).colour),
+      }}
+    >
+      {stitch.type === "k2tog" && (
+        <div className="chart-mark chart-mark-k2tog" />
+      )}
+      {stitch.type === "k3tog" && (
+        <>
+          <div className="chart-mark chart-mark-k3tog-a" />
+          <div className="chart-mark chart-mark-k3tog-b" />
+          <div className="chart-mark chart-mark-k3tog-c" />
+        </>
+      )}
+    </div>
+  )
+);
 
 const KnittingPattern: React.FC<KnittingPatternProps> = ({
   stitches,
@@ -152,12 +77,22 @@ const KnittingPattern: React.FC<KnittingPatternProps> = ({
   followProgress = false,
 }) => {
   const { yarns } = useYarns();
-  const gridRef = React.useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
   const nextStitchId = followProgress ? progress + 1 : undefined;
+
+  const filteredStitches = useMemo(
+    () => stitches.filter((stitch) => stitch.id !== 0),
+    [stitches]
+  );
+
+  const { positions, numRows, numCols } = useMemo(
+    () => layOutStitches(filteredStitches),
+    [filteredStitches]
+  );
 
   // Keep the stitch being worked on screen, so the chart follows the knitter
   // rather than having to be hunted for.
-  React.useEffect(() => {
+  useEffect(() => {
     if (nextStitchId === undefined) return;
     const grid = gridRef.current;
     const cell = grid?.querySelector<HTMLElement>('[data-next-stitch="true"]');
@@ -172,16 +107,6 @@ const KnittingPattern: React.FC<KnittingPatternProps> = ({
     });
   }, [nextStitchId]);
 
-  const filteredStitches = useMemo(
-    () => stitches.filter((stitch) => stitch.id !== 0),
-    [stitches]
-  );
-
-  const { positions, numRows, numCols } = useMemo(
-    () => layOutStitches(filteredStitches),
-    [filteredStitches]
-  );
-
   if (numRows === 0 || numCols === 0) {
     return <p>This pattern has no stitches to chart.</p>;
   }
@@ -190,16 +115,12 @@ const KnittingPattern: React.FC<KnittingPatternProps> = ({
     <div>
       <div
         id="printable-section"
+        className="chart"
         ref={gridRef}
         style={{
-          display: "grid",
           gridTemplateRows: `repeat(${numRows + 1}, ${cellSize}px)`,
           gridTemplateColumns: `repeat(${numCols + 1}, ${cellSize}px)`,
-          gap: "0px",
           minHeight: `${(numRows + 2) * cellSize}px`,
-          overflowX: "auto",
-          overflowY: "hidden",
-          marginBottom: "10px",
         }}
       >
         {filteredStitches.map((stitch) => {
@@ -219,30 +140,36 @@ const KnittingPattern: React.FC<KnittingPatternProps> = ({
           );
         })}
         {[...Array(numCols)].map((_, colIndex) => {
-          if ((colIndex + 1) % 5 !== 0) return null;
+          if ((colIndex + 1) % emphasisEvery !== 0) return null;
           return (
-            <LabelBottom
+            <Label
               key={`col-label-${colIndex}`}
+              edge="bottom"
               row={numRows + 1}
               col={numCols - colIndex}
             >
               {colIndex + 1}
-            </LabelBottom>
+            </Label>
           );
         })}
         {[...Array(numRows)].map((_, rowIndex) => {
-          if ((rowIndex + 1) % 5 !== 0) return null;
+          if ((rowIndex + 1) % emphasisEvery !== 0) return null;
           return (
-            <LabelRight
+            <Label
               key={`row-label-${rowIndex}`}
+              edge="right"
               col={numCols + 1}
               row={numRows - rowIndex}
             >
               {rowIndex + 1}
-            </LabelRight>
+            </Label>
           );
         })}
       </div>
+      <p className="chart-caption">
+        {numCols} stitches across, {numRows} rows. Read from the bottom right,
+        working right to left. Scroll sideways to see the whole round.
+      </p>
     </div>
   );
 };

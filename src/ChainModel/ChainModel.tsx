@@ -49,7 +49,13 @@ const ChainModel: React.FC<ChainModelProps> = ({
   return (
     <Canvas
       camera={{ position: [(-4 * stitchesPerRow) / 5, roughHeight / 2, 0] }}
-      style={{ backgroundColor: "rgb(20, 20, 20)" }}
+      /*
+       * Transparent, so the stage behind it provides the ground and the hat
+       * sits on paper in light mode and on ink in dark mode. The canvas used
+       * to paint its own near-black regardless of the theme.
+       */
+      style={{ backgroundColor: "transparent" }}
+      gl={{ alpha: true, antialias: true }}
       shadows={"basic"}
     >
       <OrbitControls

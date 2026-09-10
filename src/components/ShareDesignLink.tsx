@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import Button from "./ui/Button";
 
 /**
  * Copies a link to the design currently in the URL.
@@ -28,24 +29,14 @@ const ShareDesignLink: React.FC = () => {
   };
 
   return (
-    <div style={{ marginTop: "10px" }}>
-      <button
-        type="button"
-        onClick={copy}
-        style={{
-          background: "none",
-          border: "none",
-          padding: 0,
-          color: "#9fb6ff",
-          cursor: "pointer",
-          font: "inherit",
-          fontSize: "0.9rem",
-          textDecoration: "underline",
-        }}
-      >
+    <div style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+      <Button variant="quiet" onClick={copy}>
         Copy a link to this design
-      </button>
-      <span aria-live="polite" style={{ fontSize: "0.9rem", marginLeft: "8px" }}>
+      </Button>
+      <span
+        aria-live="polite"
+        style={{ fontSize: "var(--text-sm)", color: "var(--ink-faint)" }}
+      >
         {state === "copied" && "Copied."}
         {state === "failed" && "Press Ctrl/Cmd+L then copy the address bar."}
       </span>

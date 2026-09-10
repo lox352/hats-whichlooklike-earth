@@ -2,23 +2,13 @@ import React, { useState } from "react";
 import { Stitch } from "../types/Stitch";
 import { downloadChartPng, downloadChartSvg } from "../helpers/chart-export";
 import { useYarns } from "../useYarns";
+import Button from "./ui/Button";
 
 interface ChartActionsProps {
   stitches: Stitch[];
   /** Used as the download filename. */
   name: string;
 }
-
-const linkStyle: React.CSSProperties = {
-  background: "none",
-  border: "none",
-  padding: 0,
-  color: "#9fb6ff",
-  cursor: "pointer",
-  font: "inherit",
-  fontSize: "0.9rem",
-  textDecoration: "underline",
-};
 
 const safeFilename = (name: string) =>
   name
@@ -49,32 +39,32 @@ const ChartActions: React.FC<ChartActionsProps> = ({ stitches, name }) => {
         gap: "16px",
         alignItems: "center",
         flexWrap: "wrap",
-        marginTop: "10px",
       }}
     >
-      <button type="button" style={linkStyle} onClick={() => window.print()}>
-        Print chart
-      </button>
-      <button
-        type="button"
-        style={linkStyle}
+      <Button variant="quiet" onClick={() => window.print()}>
+        Print
+      </Button>
+      <Button
+        variant="quiet"
         onClick={withReporting(() =>
           downloadChartSvg(stitches, safeFilename(name), yarns)
         )}
       >
         Download SVG
-      </button>
-      <button
-        type="button"
-        style={linkStyle}
+      </Button>
+      <Button
+        variant="quiet"
         onClick={withReporting(() =>
           downloadChartPng(stitches, safeFilename(name), yarns)
         )}
       >
         Download PNG
-      </button>
+      </Button>
       {problem && (
-        <span role="alert" style={{ fontSize: "0.9rem", color: "#ff9a91" }}>
+        <span
+          role="alert"
+          style={{ fontSize: "var(--text-sm)", color: "var(--danger)" }}
+        >
           {problem}
         </span>
       )}

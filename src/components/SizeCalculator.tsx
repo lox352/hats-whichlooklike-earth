@@ -11,6 +11,7 @@ import {
   stitchesPerRowFor,
 } from "../helpers/sizing";
 import { writeGauge } from "../helpers/gauge-preference";
+import Button from "./ui/Button";
 
 interface SizeCalculatorProps {
   gauge: Gauge;
@@ -20,16 +21,6 @@ interface SizeCalculatorProps {
   decreaseMethod: DecreaseMethod;
   onSize: (stitchesPerRow: number, numberOfRows: number) => void;
 }
-
-const fieldStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "flex-start",
-  fontSize: "0.9rem",
-  gap: "4px",
-};
-
-const numberStyle: React.CSSProperties = { width: "84px" };
 
 const round1 = (value: number) => Math.round(value * 10) / 10;
 
@@ -84,26 +75,16 @@ const SizeCalculator: React.FC<SizeCalculatorProps> = ({
     : null;
 
   return (
-    <div
-      style={{
-        border: "1px solid #333",
-        borderRadius: "6px",
-        padding: "12px 14px",
-        marginBottom: "18px",
-        maxWidth: "560px",
-      }}
-    >
-      <h3 style={{ fontSize: "1rem", margin: "0 0 4px" }}>
-        Size it for a head
-      </h3>
-      <p style={{ fontSize: "0.85rem", opacity: 0.7, margin: "0 0 12px" }}>
+    <div className="design-card">
+      <h3 className="design-card-title">Size it for a head</h3>
+      <p className="design-card-note">
         Your gauge is remembered for next time. Measure it over 10cm of knitted
         fabric in the round.
       </p>
 
-      <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
-        <label style={fieldStyle}>
-          Head (cm)
+      <div className="design-row">
+        <label>
+          <span className="design-field-label">Head (cm)</span>
           <input
             type="number"
             min="20"
@@ -111,11 +92,11 @@ const SizeCalculator: React.FC<SizeCalculatorProps> = ({
             step="0.5"
             value={headCircumference}
             onChange={(e) => setHeadCircumference(Number(e.target.value))}
-            style={numberStyle}
+            style={{ width: "6rem" }}
           />
         </label>
-        <label style={fieldStyle}>
-          Height (cm)
+        <label>
+          <span className="design-field-label">Height (cm)</span>
           <input
             type="number"
             min="1"
@@ -123,11 +104,11 @@ const SizeCalculator: React.FC<SizeCalculatorProps> = ({
             step="0.5"
             value={bodyHeight}
             onChange={(e) => setBodyHeight(Number(e.target.value))}
-            style={numberStyle}
+            style={{ width: "6rem" }}
           />
         </label>
-        <label style={fieldStyle}>
-          Sts / 10cm
+        <label>
+          <span className="design-field-label">Sts / 10cm</span>
           <input
             type="number"
             min="1"
@@ -137,11 +118,11 @@ const SizeCalculator: React.FC<SizeCalculatorProps> = ({
             onChange={(e) =>
               updateGauge({ stitchesPer10cm: Number(e.target.value) })
             }
-            style={numberStyle}
+            style={{ width: "6rem" }}
           />
         </label>
-        <label style={fieldStyle}>
-          Rows / 10cm
+        <label>
+          <span className="design-field-label">Rows / 10cm</span>
           <input
             type="number"
             min="1"
@@ -151,34 +132,18 @@ const SizeCalculator: React.FC<SizeCalculatorProps> = ({
             onChange={(e) =>
               updateGauge({ rowsPer10cm: Number(e.target.value) })
             }
-            style={numberStyle}
+            style={{ width: "6rem" }}
           />
         </label>
       </div>
 
-      <div style={{ marginTop: "12px" }}>
-        <button
-          type="button"
-          onClick={apply}
-          disabled={!gaugeUsable}
-          style={{
-            backgroundColor: gaugeUsable ? "#2f6f4f" : "#444",
-            color: "white",
-            padding: "7px 14px",
-            border: "none",
-            borderRadius: "4px",
-            cursor: gaugeUsable ? "pointer" : "not-allowed",
-            fontSize: "0.9rem",
-          }}
-        >
+      <div style={{ marginTop: "14px" }}>
+        <Button variant="secondary" onClick={apply} disabled={!gaugeUsable}>
           Work out my stitches
-        </button>
+        </Button>
       </div>
 
-      <p
-        aria-live="polite"
-        style={{ fontSize: "0.85rem", marginTop: "12px", marginBottom: 0 }}
-      >
+      <p aria-live="polite" className="design-summary">
         {gaugeUsable ? (
           <>
             {stitchesPerRow} stitches and {numberOfRows} rows makes a hat about{" "}

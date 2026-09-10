@@ -6,6 +6,9 @@ import { getStitches } from "../helpers/stitches";
 import { validateDesign } from "../types/KnittingMachine";
 import { designFromSearchParams, designKey } from "../helpers/design-url";
 import { cacheDyedHat, readDyedHat } from "../helpers/design-session";
+import PageLayout from "./ui/PageLayout";
+import Button from "./ui/Button";
+import "./Render.css";
 
 interface RenderProps {
   stitches: Stitch[];
@@ -117,52 +120,57 @@ const Render: React.FC<RenderProps> = ({ stitches, setStitches }) => {
     cacheDyedHat(design, stitches);
   }, [stage, restored, design, stitches]);
 
+  const working = stage !== "done";
+
   if (stitches.length === 0) {
     return (
-      <div style={{ textAlign: "left", padding: "20px" }}>
-        <h1 style={{ fontSize: "2.5rem", marginBottom: "20px" }}>
-          Dyeing Your Hat
-        </h1>
-        <p style={{ fontStyle: "italic" }}>Casting on...</p>
-      </div>
+      <PageLayout title="Dyeing your hat" step="dye">
+        <p className="render-status render-status-working">Casting on...</p>
+      </PageLayout>
     );
   }
 
   return (
-    <div style={{ textAlign: "left", padding: "20px" }}>
-      <h1 style={{ fontSize: "2.5rem", marginBottom: "20px" }}>
-        Dyeing Your Hat
-      </h1>
-      <HatCanvas
+    <PageLayout
+      title="Dyeing your hat"
+      step="dye"
+      lede="Every stitch takes the colour of whatever it lands on once the hat settles."
+    >
+      <div className="hat-stage">
+        <HatCanvas
         stitches={stitches}
         setStitches={restored ? undefined : setStitches}
         orientationParameters={design.orientation}
         simulationActive={simulationActive}
         setSimulationActive={restored ? undefined : setSimulationActive}
         onAnyStitchRendered={handleAnyStitchRendered}
-        onDyeingComplete={handleDyeingComplete}
-      />
-      <p aria-live="polite" style={{ fontStyle: "italic" }}>
+          onDyeingComplete={handleDyeingComplete}
+        />
+      </div>
+      <p
+        aria-live="polite"
+        className={`render-status${working ? " render-status-working" : ""}`}
+      >
         {statusText[stage]}
       </p>
       {stage === "done" && (
-        <div style={{ marginTop: "10px" }}>
-          <button
-            style={{
-              backgroundColor: "#3f51b5",
-              color: "white",
-              padding: "10px 20px",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
+        <div className="render-actions">
+          <Button
+            variant="primary"
+            size="lg"
             onClick={() => navigate(`/pattern?${searchParams.toString()}`)}
           >
-            Generate Pattern
-          </button>
+            Make the chart
+          </Button>
+          <Button
+            variant="quiet"
+            onClick={() => navigate(`/design?${searchParams.toString()}`)}
+          >
+            Back to the design
+          </Button>
         </div>
       )}
-    </div>
+    </PageLayout>
   );
 };
 

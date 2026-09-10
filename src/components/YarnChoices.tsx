@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { RGB } from "../types/RGB";
+import Button from "./ui/Button";
 import {
   clearYarns,
   cssColour,
@@ -50,35 +51,21 @@ const YarnChoices: React.FC<YarnChoicesProps> = ({ yarns, setYarns }) => {
 
   return (
     <div className="screen-only" style={{ marginTop: "14px" }}>
-      <button
-        type="button"
-        aria-expanded={open}
-        onClick={() => setOpen(!open)}
-        style={{
-          background: "none",
-          border: "none",
-          padding: 0,
-          color: "#9fb6ff",
-          cursor: "pointer",
-          font: "inherit",
-          fontSize: "0.9rem",
-          textDecoration: "underline",
-        }}
-      >
+      <Button variant="quiet" aria-expanded={open} onClick={() => setOpen(!open)}>
         {open ? "Hide your yarns" : "Your yarns"}
-      </button>
+      </Button>
 
       {open && (
         <div
           style={{
-            border: "1px solid #333",
+            border: "1px solid var(--paper-edge)",
             borderRadius: "6px",
             padding: "12px 14px",
             marginTop: "10px",
             maxWidth: "560px",
           }}
         >
-          <p style={{ fontSize: "0.85rem", opacity: 0.7, margin: "0 0 12px" }}>
+          <p style={{ fontSize: "var(--text-sm)", color: "var(--ink-faint)", margin: "0 0 12px" }}>
             Name the yarns you are using and set them to their real shades. This
             changes the chart and the key only; which stitches are land and
             which are sea is decided by the earth, not by this.
@@ -114,7 +101,7 @@ const YarnChoices: React.FC<YarnChoicesProps> = ({ yarns, setYarns }) => {
                   width: "38px",
                   height: "30px",
                   padding: 0,
-                  border: "1px solid #444",
+                  border: "1px solid var(--rule-strong)",
                   borderRadius: "4px",
                   background: "none",
                 }}
@@ -139,23 +126,9 @@ const YarnChoices: React.FC<YarnChoicesProps> = ({ yarns, setYarns }) => {
               />
             </div>
           ))}
-          <button
-            type="button"
-            onClick={reset}
-            style={{
-              background: "none",
-              border: "none",
-              padding: 0,
-              color: "#9fb6ff",
-              cursor: "pointer",
-              font: "inherit",
-              fontSize: "0.85rem",
-              textDecoration: "underline",
-              marginTop: "4px",
-            }}
-          >
-            Back to the earth's own colours
-          </button>
+          <Button variant="quiet" onClick={reset}>
+            Back to the earth&rsquo;s own colours
+          </Button>
         </div>
       )}
     </div>

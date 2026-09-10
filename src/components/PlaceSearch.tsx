@@ -6,17 +6,6 @@ interface PlaceSearchProps {
   onPick: (coordinates: GlobalCoordinates, place: Place) => void;
 }
 
-const resultsStyle: React.CSSProperties = {
-  listStyle: "none",
-  margin: "4px 0 0",
-  padding: 0,
-  border: "1px solid #444",
-  borderRadius: "4px",
-  background: "#1a1a1a",
-  maxWidth: "360px",
-  overflow: "hidden",
-};
-
 /**
  * Find somewhere by name instead of typing coordinates.
  *
@@ -85,10 +74,9 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({ onPick }) => {
   const showResults = open && query.trim().length > 0;
 
   return (
-    <div ref={containerRef} style={{ marginBottom: "15px", position: "relative" }}>
-      <label style={{ display: "block" }}>
-        Search for a place
-        <br />
+    <div ref={containerRef} className="place-search">
+      <label>
+        <span className="design-field-label">Search for a place</span>
         <input
           type="text"
           value={query}
@@ -108,15 +96,13 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({ onPick }) => {
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
-          style={{ marginTop: "5px", width: "320px", maxWidth: "100%" }}
+          className="place-input"
         />
       </label>
       {showResults && (
-        <ul id={listId} role="listbox" style={resultsStyle}>
+        <ul id={listId} role="listbox" className="place-results">
           {results.length === 0 && (
-            <li
-              style={{ padding: "8px 10px", opacity: 0.7, fontSize: "0.9rem" }}
-            >
+            <li className="place-empty">
               Nothing found. Try a city, country or ocean, or set the
               coordinates below.
             </li>
@@ -134,18 +120,12 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({ onPick }) => {
                 event.preventDefault();
                 choose(place);
               }}
-              style={{
-                padding: "8px 10px",
-                cursor: "pointer",
-                background: position === highlighted ? "#2c3a6b" : "transparent",
-                display: "flex",
-                justifyContent: "space-between",
-                gap: "12px",
-                fontSize: "0.95rem",
-              }}
+              className={`place-option${
+                position === highlighted ? " place-option-active" : ""
+              }`}
             >
               <span>{place.name}</span>
-              <span style={{ opacity: 0.65 }}>{place.region}</span>
+              <span className="place-option-region">{place.region}</span>
             </li>
           ))}
         </ul>

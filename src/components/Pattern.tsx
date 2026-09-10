@@ -6,6 +6,9 @@ import ChartActions from "./ChartActions";
 import ChartPrintSheet from "./ChartPrintSheet";
 import YarnChoicesEditor from "./YarnChoices";
 import WrittenInstructions from "./WrittenInstructions";
+import PageLayout from "./ui/PageLayout";
+import Button from "./ui/Button";
+import NameDialog from "./ui/NameDialog";
 import { bareIdFor, createPattern } from "../helpers/pattern-storage";
 import { designFromSearchParams } from "../helpers/design-url";
 import { readDyedHat } from "../helpers/design-session";
@@ -15,25 +18,17 @@ interface PatternProps {
   stitches: Stitch[];
 }
 
-const buttonStyle: React.CSSProperties = {
-  marginTop: "20px",
-  color: "white",
-  padding: "10px 20px",
-  border: "none",
-  borderRadius: "4px",
-  cursor: "pointer",
-};
-
 const Pattern: React.FC<PatternProps> = ({ stitches }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { yarns, setYarns } = useYarns();
   const design = useMemo(
     () => designFromSearchParams(searchParams),
     [searchParams]
   );
 
-  const { yarns, setYarns } = useYarns();
-  const [patternSaved, setPatternSaved] = useState(false);
+  const [naming, setNaming] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
 
   /*
    * A reload loses the hat held in memory, but the tab still remembers the one
@@ -59,29 +54,24 @@ const Pattern: React.FC<PatternProps> = ({ stitches }) => {
     return null;
   }
 
-  const saveToLocalStorage = () => {
-    const patternName = prompt("Please enter a name for your pattern:");
-    if (patternName === null) {
-      return;
-    }
-
-    const { result, pattern } = createPattern(charted, patternName);
+  const save = (name: string) => {
+    setNaming(false);
+    const { result, pattern } = createPattern(charted, name);
     if (!result.ok) {
-      alert(
-        "Local storage is full. Please delete a pattern from the home page and try again."
+      setProblem(
+        "This browser is out of storage. Delete a pattern from the home page and try again."
       );
       return;
     }
-
-    setPatternSaved(true);
     navigate(`/pattern/${bareIdFor(pattern.id)}`);
   };
 
   return (
-    <div style={{ textAlign: "left", padding: "20px" }}>
-      <h1 className="screen-only" style={{ fontSize: "2.5rem", marginBottom: "20px" }}>
-        Hat Pattern
-      </h1>
+    <PageLayout
+      title="Your chart"
+      step="pattern"
+      lede="Save it to tick stitches off as you knit, or take it away as a file."
+    >
       <div className="screen-only">
         <KnittingPattern stitches={charted} progress={0} />
       </div>
@@ -89,27 +79,33 @@ const Pattern: React.FC<PatternProps> = ({ stitches }) => {
       <ChartActions stitches={charted} name="hat-pattern" />
       <YarnChoicesEditor yarns={yarns} setYarns={setYarns} />
       <WrittenInstructions stitches={charted} />
-      <div className="screen-only" style={{ textAlign: "right" }}>
-        <button
-          style={{
-            ...buttonStyle,
-            backgroundColor: "#f44336",
-            marginRight: "10px",
-          }}
-          onClick={() => navigate("/")}
+
+      <div className="render-actions screen-only">
+        <Button variant="primary" size="lg" onClick={() => setNaming(true)}>
+          Save this pattern
+        </Button>
+        <Button
+          variant="quiet"
+          onClick={() => navigate(`/design?${searchParams.toString()}`)}
         >
-          Start Again
-        </button>
-        {!patternSaved && (
-          <button
-            style={{ ...buttonStyle, backgroundColor: "#3f51b5" }}
-            onClick={saveToLocalStorage}
-          >
-            Save Pattern
-          </button>
+          Change the design
+        </Button>
+        {problem && (
+          <span role="alert" style={{ color: "var(--danger)", fontSize: "var(--text-sm)" }}>
+            {problem}
+          </span>
         )}
       </div>
-    </div>
+
+      <NameDialog
+        open={naming}
+        title="Name this pattern"
+        text="So you can find it again on the home page."
+        initialValue="My Earth hat"
+        onConfirm={save}
+        onCancel={() => setNaming(false)}
+      />
+    </PageLayout>
   );
 };
 

@@ -7,6 +7,9 @@ import ChartActions from "./ChartActions";
 import ChartPrintSheet from "./ChartPrintSheet";
 import YarnChoicesEditor from "./YarnChoices";
 import WrittenInstructions from "./WrittenInstructions";
+import PageLayout from "./ui/PageLayout";
+import Button from "./ui/Button";
+import ProgressRing from "./ProgressRing";
 import {
   patternsChangedEvent,
   percentComplete,
@@ -18,15 +21,15 @@ import { useYarns } from "../useYarns";
 const SavedPattern: React.FC = () => {
   const { patternId } = useParams();
   const navigate = useNavigate();
-
   const { yarns, setYarns } = useYarns();
-  const [recordingProgress, setRecordingProgress] = React.useState(false);
+
+  const [recordingProgress, setRecordingProgress] = useState(false);
   /*
    * Miscounting is the normal failure mode when knitting, so every change is
    * pushed onto a stack that can be walked back. Kept in memory only: it is
    * for the session you are knitting in, not something to persist.
    */
-  const [undoStack, setUndoStack] = React.useState<number[]>([]);
+  const [undoStack, setUndoStack] = useState<number[]>([]);
   const [savedPattern, setSavedPattern] = useState<Pattern | undefined>(() =>
     readPattern(patternId)
   );
@@ -66,40 +69,23 @@ const SavedPattern: React.FC = () => {
 
   if (!savedPattern) {
     return (
-      <div style={{ textAlign: "left", padding: "20px" }}>
-        <h1 style={{ fontSize: "2.5rem", marginBottom: "20px" }}>
-          Pattern not found
-        </h1>
+      <PageLayout title="Pattern not found">
         <p>
           This pattern is no longer saved in this browser. Saved patterns live
           only on the device that made them.
         </p>
-        <button
-          style={{
-            backgroundColor: "#3f51b5",
-            color: "white",
-            padding: "10px 15px",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-          onClick={() => navigate("/")}
-        >
-          Back to Homepage
-        </button>
-      </div>
+        <Button variant="primary" onClick={() => navigate("/")}>
+          Back to your hats
+        </Button>
+      </PageLayout>
     );
   }
 
-  return (
-    <div style={{ textAlign: "left", padding: "20px" }}>
-      <h1
-        className="screen-only"
-        style={{ fontSize: "2.5rem", marginBottom: "20px" }}
-      >
-        {savedPattern.name ?? "Saved Pattern"}
-      </h1>
+  const percent = percentComplete(savedPattern);
+  const name = savedPattern.name ?? "Saved Pattern";
 
+  return (
+    <PageLayout title={name} step="pattern">
       <div className="screen-only">
         <KnittingPattern
           stitches={savedPattern.stitches}
@@ -107,56 +93,41 @@ const SavedPattern: React.FC = () => {
           followProgress={recordingProgress}
         />
       </div>
-      <ChartPrintSheet
-        stitches={savedPattern.stitches}
-        title={savedPattern.name ?? "Saved Pattern"}
-      />
-      <ChartActions
-        stitches={savedPattern.stitches}
-        name={savedPattern.name ?? "saved-pattern"}
-      />
+      <ChartPrintSheet stitches={savedPattern.stitches} title={name} />
+      <ChartActions stitches={savedPattern.stitches} name={name} />
       <YarnChoicesEditor yarns={yarns} setYarns={setYarns} />
       <WrittenInstructions stitches={savedPattern.stitches} />
+
       {!recordingProgress && (
-        <div className="screen-only" style={{ textAlign: "right" }}>
-          <button
-            style={{
-              backgroundColor: "#f44336",
-              color: "white",
-              padding: "10px 15px",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              marginTop: "10px",
-              marginBottom: "10px",
-              marginRight: "10px",
-            }}
-            onClick={() => navigate("/")}
+        <div className="render-actions screen-only">
+          <Button
+            variant="primary"
+            size="lg"
+            onClick={() => setRecordingProgress(true)}
           >
-            Back to Homepage
-          </button>
-          <button
+            {percent > 0 ? "Keep knitting" : "Start knitting"}
+          </Button>
+          <Button variant="quiet" onClick={() => navigate("/")}>
+            Back to your hats
+          </Button>
+          <span
             style={{
-              backgroundColor: "#3f51b5",
-              color: "white",
-              padding: "10px 15px",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              marginTop: "10px",
-              marginBottom: "10px",
-            }}
-            onClick={() => {
-              setRecordingProgress(true);
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "10px",
+              color: "var(--ink-faint)",
+              fontSize: "var(--text-sm)",
             }}
           >
-            Start Knitting
-          </button>
-          <div style={{ textAlign: "left" }}>
-            {percentComplete(savedPattern).toFixed(2)}% complete
-          </div>
+            <ProgressRing
+              percent={percent}
+              label={`${percent.toFixed(0)}% knitted`}
+            />
+            {percent.toFixed(1)}% knitted
+          </span>
         </div>
       )}
+
       {recordingProgress && (
         <KnittingMode
           stitches={savedPattern.stitches}
@@ -167,7 +138,7 @@ const SavedPattern: React.FC = () => {
           onUndo={undo}
         />
       )}
-    </div>
+    </PageLayout>
   );
 };
 
