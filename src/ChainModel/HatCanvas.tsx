@@ -15,7 +15,7 @@ import { OrientationParameters } from "../types/OrientationParameters";
  */
 const ChainModel = lazy(() => import("./ChainModel"));
 
-export const hatCanvasHeight = 350;
+export const hatCanvasHeight = 430;
 
 interface HatCanvasProps {
   stitches: Stitch[];

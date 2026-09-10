@@ -62,6 +62,25 @@ const restMotionThreshold = 0.15;
 /** Always simulate at least this many frames before testing for rest. */
 const minimumSettleFrames = 10;
 
+/**
+ * How long the dye takes to sweep down the hat, in seconds.
+ *
+ * Long enough to read as the earth arriving rather than a flicker, short
+ * enough not to hold up someone who just wants the chart.
+ */
+const dyeSweepSeconds = 1.5;
+
+/**
+ * Largest frame delta the dye sweep will advance by, in seconds.
+ *
+ * Colouring the hat blocks for a few hundred milliseconds, and the frame
+ * straight afterwards carries that whole stall as its delta. Advancing the
+ * sweep by it skips most of the animation in one step, and on a slow machine
+ * skips all of it. Clamping means the sweep is measured in frames of visible
+ * motion rather than in wall-clock time it may never get to spend.
+ */
+const maxDyeStepSeconds = 1 / 30;
+
 const northPole: GlobalCoordinates = { latitude: 90, longitude: 0 };
 const southPole: GlobalCoordinates = { latitude: -90, longitude: 180 };
 
@@ -77,6 +96,8 @@ export {
   solverIterations,
   restMotionThreshold,
   minimumSettleFrames,
+  dyeSweepSeconds,
+  maxDyeStepSeconds,
   northPole,
   southPole,
 };
