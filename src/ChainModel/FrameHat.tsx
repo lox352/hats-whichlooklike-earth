@@ -40,14 +40,18 @@ const compass = [
 const samplePoints = Array.from({ length: 9 }, () => new THREE.Vector3());
 
 /**
- * How much of the frame the hat should fill.
+ * How much of the frame the hat's silhouette should fill, measured from its
+ * middle, where 1 reaches the edge.
  *
  * Deliberately short of the edges. The height is predicted rather than
  * measured and the fit is out by up to a tenth on the squattest hats, so the
  * margin has to cover that: a hat a tenth taller than predicted still lands
  * inside the frame, and one a tenth shorter still fills most of it.
  */
-const fillFraction = 0.88;
+const fillFraction = 0.72;
+
+/** Where the middle of the silhouette should sit. 0 is the middle of the frame. */
+const framingBias = 0;
 
 /**
  * Places the camera once, from the size the hat is going to be, and then leaves
@@ -75,16 +79,19 @@ const FrameHat: React.FC<FrameHatProps> = ({ shape, controls }) => {
     framed.current = key;
 
     const perspective = camera as THREE.PerspectiveCamera;
-    // The hat stands on the ground, so its middle is half its height up.
-    centre.set(0, shape.height / 2, 0);
 
     samplePoints[0].set(0, shape.height, 0);
     compass.forEach(([dx, dz], index) => {
       samplePoints[index + 1].set(dx * shape.radius, 0, dz * shape.radius);
     });
 
-    /** Puts the camera at `distance` and reports how much of the frame it fills. */
-    const fillAt = (distance: number): number => {
+    /**
+     * Aims the camera at `aimY` from `distance` away, and reports where the
+     * silhouette lands: how far it reaches from its own middle, and where that
+     * middle sits up the frame.
+     */
+    const placeAt = (distance: number, aimY: number) => {
+      centre.set(0, aimY, 0);
       perspective.position.copy(centre).addScaledVector(direction, distance);
       perspective.lookAt(centre);
       perspective.near = Math.max(distance / 100, 0.1);
@@ -92,12 +99,21 @@ const FrameHat: React.FC<FrameHatProps> = ({ shape, controls }) => {
       perspective.updateProjectionMatrix();
       perspective.updateMatrixWorld();
 
-      let widest = 0;
+      let top = -Infinity;
+      let bottom = Infinity;
+      let left = Infinity;
+      let right = -Infinity;
       for (const point of samplePoints) {
         projected.copy(point).project(perspective);
-        widest = Math.max(widest, Math.abs(projected.x), Math.abs(projected.y));
+        top = Math.max(top, projected.y);
+        bottom = Math.min(bottom, projected.y);
+        left = Math.min(left, projected.x);
+        right = Math.max(right, projected.x);
       }
-      return widest;
+      return {
+        reach: Math.max((top - bottom) / 2, (right - left) / 2),
+        middle: (top + bottom) / 2,
+      };
     };
 
     /*
@@ -111,14 +127,41 @@ const FrameHat: React.FC<FrameHatProps> = ({ shape, controls }) => {
     const fovRadians = (perspective.fov * Math.PI) / 180;
     const boundingRadius = Math.hypot(shape.radius, shape.height / 2);
     let distance = boundingRadius / Math.sin(fovRadians / 2);
+    // The hat stands on the ground, so its middle is half its height up.
+    let aimY = shape.height / 2;
+
+    /*
+     * Then settle the size and the height together.
+     *
+     * Aiming at the hat's own middle does not put it in the middle of the
+     * frame. The camera looks slightly down at it, so the near edge of the brim
+     * is both the lowest thing on screen and the closest thing to the lens,
+     * which pushes it further down than the crown reaches up. Measured, that
+     * left a quarter of the frame empty above the hat and a fourteenth below
+     * it. So the aim point is fitted rather than assumed.
+     *
+     * An earlier attempt at this went wrong by nudging the camera along world Y
+     * by the screen-space error as if the two were the same length. They are
+     * not, on either count: a world-Y move only partly shows up as vertical
+     * movement on screen, because the rest of it goes into depth, and the
+     * frame is two units of clip space tall. Hence the conversion below.
+     */
+    const tangentOfHalfFov = Math.tan(fovRadians / 2);
+    const shareShowingOnScreen = Math.sqrt(1 - direction.y * direction.y);
 
     for (let pass = 0; pass < 8; pass++) {
-      const fill = fillAt(distance);
-      if (fill <= 0) break;
-      if (Math.abs(fill - fillFraction) < 0.015) break;
-      distance *= fill / fillFraction;
+      const { reach, middle } = placeAt(distance, aimY);
+      if (reach <= 0) break;
+      const offset = middle - framingBias;
+      if (Math.abs(reach - fillFraction) < 0.01 && Math.abs(offset) < 0.01) {
+        break;
+      }
+      // Raising the aim point pushes the hat down the frame, so lifting the hat
+      // means dropping the whole rig.
+      aimY += (offset * distance * tangentOfHalfFov) / shareShowingOnScreen;
+      distance *= reach / fillFraction;
     }
-    fillAt(distance);
+    placeAt(distance, aimY);
 
     const orbit = controls.current;
     if (orbit) {

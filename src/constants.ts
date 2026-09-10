@@ -71,6 +71,19 @@ const restMotionThreshold = 0.15;
 const minimumSettleFrames = 10;
 
 /**
+ * How long the hat has to stay below that threshold before the simulation
+ * stops, in seconds.
+ *
+ * The first quiet frame is not the end of the movement. The fabric is still
+ * easing into shape when the motion drops below the threshold, so stopping
+ * there froze it a moment early. Holding on for another second lets it finish:
+ * measured, the hat settles a further half to seven tenths of a percent, so
+ * this buys the look of a hat that has come to rest rather than a different
+ * shape.
+ */
+const settleRestSeconds = 1;
+
+/**
  * How long the dye takes to sweep down the hat, in seconds.
  *
  * Long enough to read as the earth arriving rather than a flicker, short
@@ -104,6 +117,7 @@ export {
   solverIterations,
   restMotionThreshold,
   minimumSettleFrames,
+  settleRestSeconds,
   dyeSweepSeconds,
   maxDyeStepSeconds,
   northPole,

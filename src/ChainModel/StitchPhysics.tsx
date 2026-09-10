@@ -12,6 +12,7 @@ import {
   maxDyeStepSeconds,
   minimumSettleFrames,
   restMotionThreshold,
+  settleRestSeconds,
   verticalStitchDistance,
 } from "../constants";
 import { useFrame } from "@react-three/fiber";
@@ -39,6 +40,7 @@ const StitchPhysics: React.FC<StitchPhysicsProps> = ({
 }) => {
   const setRefsVersion = useState(0)[1];
   const frameNumber = useRef(0);
+  const restingFor = useRef(0);
   const stitches = stitchesRef.current;
 
   // Built once and then grown/shrunk in the effect below. Passing the mapped
@@ -107,11 +109,14 @@ const StitchPhysics: React.FC<StitchPhysicsProps> = ({
       totalMotion += motionChange;
     });
 
-    // Stop simulating once the hat has come to rest.
+    // Stop simulating once the hat has come to rest, and has stayed there.
     const threshold = restMotionThreshold * stitchRefs.current.length;
     if (totalMotion > threshold || frameNumber.current < minimumSettleFrames) {
+      restingFor.current = 0;
       return;
     }
+    restingFor.current += delta;
+    if (restingFor.current < settleRestSeconds) return;
 
     setSimulationActive(false);
 
