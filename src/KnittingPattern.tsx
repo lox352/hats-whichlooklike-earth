@@ -61,18 +61,27 @@ const StitchBox: React.FC<{
            * The heavy lines fall *after* every fifth stitch and row, counting
            * from the bottom right as you knit.
            *
-           * A cell carries its own right and bottom borders, and stitch number
-           * n sits at col 1 - n (so stitch 1 is col 0, and numbers grow
-           * leftwards). The line between stitch 5 and stitch 6 is therefore the
-           * right-hand border of stitch 6, which is col -5. Marking col -5,
-           * -10, -15 puts the line after each fifth stitch; marking stitch 5
-           * itself, as this used to, put it between 4 and 5.
+           * Stitch number n sits at col 1 - n, so stitch 1 is col 0 and the
+           * numbers grow leftwards. The line between stitch 5 and stitch 6 is
+           * therefore the right-hand edge of stitch 6, which is col -5.
+           * Marking col -5, -10, -15 puts the line after each fifth stitch;
+           * marking stitch 5 itself, as this used to, put it between 4 and 5.
+           *
+           * Both cells along a line get a class, because each contributes
+           * half its thickness: stitch 6 darkens its right edge, and stitch
+           * 5, at col -4, darkens its left. Rows work the same way, upwards.
            */
           position.col !== 0 && position.col % emphasisEvery === 0
-            ? "chart-cell-major-col"
+            ? "chart-cell-major-right"
+            : "",
+          position.col !== -1 && (position.col + 1) % emphasisEvery === 0
+            ? "chart-cell-major-left"
             : "",
           position.row !== 0 && position.row % emphasisEvery === 0
-            ? "chart-cell-major-row"
+            ? "chart-cell-major-bottom"
+            : "",
+          position.row !== -1 && (position.row + 1) % emphasisEvery === 0
+            ? "chart-cell-major-top"
             : "",
           completed ? "chart-cell-done" : "",
           isNext ? "chart-cell-next" : "",
