@@ -49,9 +49,22 @@ const StitchBox: React.FC<{
   numCols: number;
   completed: boolean;
   isNext: boolean;
+  /** No neighbour on that side, so this cell closes the outline itself. */
+  openTop: boolean;
+  openLeft: boolean;
   yarns: YarnChoices;
 }> = React.memo(
-  ({ stitch, position, numRows, numCols, completed, isNext, yarns }) => {
+  ({
+    stitch,
+    position,
+    numRows,
+    numCols,
+    completed,
+    isNext,
+    openTop,
+    openLeft,
+    yarns,
+  }) => {
     const mark = stitchMarkPath(stitch.type, 0, 0, cellSize);
     return (
       <div
@@ -61,28 +74,22 @@ const StitchBox: React.FC<{
            * The heavy lines fall *after* every fifth stitch and row, counting
            * from the bottom right as you knit.
            *
-           * Stitch number n sits at col 1 - n, so stitch 1 is col 0 and the
-           * numbers grow leftwards. The line between stitch 5 and stitch 6 is
-           * therefore the right-hand edge of stitch 6, which is col -5.
-           * Marking col -5, -10, -15 puts the line after each fifth stitch;
-           * marking stitch 5 itself, as this used to, put it between 4 and 5.
-           *
-           * Both cells along a line get a class, because each contributes
-           * half its thickness: stitch 6 darkens its right edge, and stitch
-           * 5, at col -4, darkens its left. Rows work the same way, upwards.
+           * A cell draws its own right and bottom, and stitch number n sits at
+           * col 1 - n (so stitch 1 is col 0, and the numbers grow leftwards).
+           * The line between stitch 5 and stitch 6 is therefore the right-hand
+           * border of stitch 6, which is col -5. Marking col -5, -10, -15 puts
+           * the line after each fifth stitch; marking stitch 5 itself, as this
+           * used to, put it between 4 and 5.
            */
           position.col !== 0 && position.col % emphasisEvery === 0
-            ? "chart-cell-major-right"
-            : "",
-          position.col !== -1 && (position.col + 1) % emphasisEvery === 0
-            ? "chart-cell-major-left"
+            ? "chart-cell-major-col"
             : "",
           position.row !== 0 && position.row % emphasisEvery === 0
-            ? "chart-cell-major-bottom"
+            ? "chart-cell-major-row"
             : "",
-          position.row !== -1 && (position.row + 1) % emphasisEvery === 0
-            ? "chart-cell-major-top"
-            : "",
+          // Nothing above or to the left to draw the line, so draw it here.
+          openTop ? "chart-cell-open-top" : "",
+          openLeft ? "chart-cell-open-left" : "",
           completed ? "chart-cell-done" : "",
           isNext ? "chart-cell-next" : "",
         ]
@@ -127,6 +134,21 @@ const KnittingPattern: React.FC<KnittingPatternProps> = ({
     () => layOutStitches(filteredStitches),
     [filteredStitches]
   );
+
+  /*
+   * Which squares of the grid have a stitch in them, so a cell can tell
+   * whether anything is going to draw the line above or to the left of it.
+   * Rows count upwards as they go negative and columns leftwards, so the
+   * neighbour above is one row lower and the one to the left one column lower.
+   */
+  const filled = useMemo(() => {
+    const squares = new Set<string>();
+    for (const stitch of filteredStitches) {
+      const position = positions[stitch.id];
+      if (position) squares.add(`${position.row},${position.col}`);
+    }
+    return squares;
+  }, [filteredStitches, positions]);
 
   // Sideways, within the chart: keep the stitch being worked in the middle, so
   // the chart follows the knitter rather than having to be hunted for.
@@ -208,6 +230,8 @@ const KnittingPattern: React.FC<KnittingPatternProps> = ({
               numCols={numCols}
               completed={stitch.id <= progress}
               isNext={stitch.id === nextStitchId}
+              openTop={!filled.has(`${position.row - 1},${position.col}`)}
+              openLeft={!filled.has(`${position.row},${position.col - 1}`)}
               yarns={yarns}
             />
           );

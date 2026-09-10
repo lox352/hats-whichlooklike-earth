@@ -6,6 +6,8 @@
 
 /* The chart, as a plate in an atlas. */
 .chart {
+  --graticule: color-mix(in srgb, var(--ink) 14%, transparent);
+  --graticule-strong: color-mix(in srgb, var(--ink) 42%, transparent);
   display: grid;
   gap: 0;
   /* Hug the chart rather than stretching an 20-column plate across the page,
@@ -24,78 +26,66 @@
 .chart-cell {
   position: relative;
   text-align: center;
-
-  /*
-   * Hairline graticule between stitches, heavier every fifth.
-   *
-   * Half a pixel on all four sides rather than a whole one on two of them, so
-   * neighbours lay their halves back to back: the line between two stitches
-   * weighs what it always did, and the stitches around the outside are closed
-   * off too instead of running into the chart's own edge.
-   *
-   * Drawn as four inset shadows rather than as a border, because a border
-   * cannot be half a pixel. Chrome rounds `border: 0.5px` up to a whole one,
-   * which takes a bite out of the cell - the ten pixel cells lost another
-   * pixel each way - and draws every line at double weight, the opposite of
-   * the intent. A shadow is painted rather than laid out, so it takes the
-   * half pixel, antialiasing it on a one-times screen and landing on the
-   * device pixel on a phone.
-   */
-  --graticule: color-mix(in srgb, var(--ink) 14%, transparent);
-  --graticule-strong: color-mix(in srgb, var(--ink) 42%, transparent);
-  --graticule-top: var(--graticule);
-  --graticule-right: var(--graticule);
-  --graticule-bottom: var(--graticule);
-  --graticule-left: var(--graticule);
-  box-shadow: inset 0 0.5px 0 var(--graticule-top),
-    inset -0.5px 0 0 var(--graticule-right),
-    inset 0 -0.5px 0 var(--graticule-bottom),
-    inset 0.5px 0 0 var(--graticule-left);
 }
 
 /*
- * The heavy lines, which take both halves.
+ * Hairline graticule between stitches, heavier every fifth, drawn on an
+ * overlay rather than on the cell itself.
  *
- * A line is shared by the two cells either side of it, so darkening one cell's
- * half would leave it half heavy and half hairline. Each of the four classes
- * darkens one side, and the chart puts two of them on the pair of cells that
- * meet along the line.
+ * Two reasons it is not a border on the cell. A border eats into the cell,
+ * taking the ten pixels down to nine, and the stepped cells that need the
+ * extra lines below are exactly the ones carrying decrease marks, so their
+ * marks would end up a size smaller than everyone else's. And an overlay can
+ * sit above the veil that covers a finished stitch, so a knitted row keeps
+ * its lines instead of having them washed out.
  */
-.chart-cell-major-right {
-  --graticule-right: var(--graticule-strong);
+.chart-cell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  border-right: 1px solid var(--graticule);
+  border-bottom: 1px solid var(--graticule);
 }
 
-.chart-cell-major-left {
-  --graticule-left: var(--graticule-strong);
+.chart-cell-major-col::before {
+  border-right-color: var(--graticule-strong);
 }
 
-.chart-cell-major-bottom {
-  --graticule-bottom: var(--graticule-strong);
+.chart-cell-major-row::before {
+  border-bottom-color: var(--graticule-strong);
 }
 
-.chart-cell-major-top {
-  --graticule-top: var(--graticule-strong);
+/*
+ * The chart is not a rectangle. The crown steps inwards as it decreases, so
+ * plenty of cells have nothing above them or nothing to their left, and a
+ * cell only ever draws its own right and bottom. Those sides were left open,
+ * and the outline of the fabric came apart at every step. Where there is no
+ * neighbour to supply the line, the cell draws it itself.
+ */
+.chart-cell-open-top::before {
+  border-top: 1px solid var(--graticule);
+}
+
+.chart-cell-open-left::before {
+  border-left: 1px solid var(--graticule);
 }
 
 /* A knitted stitch reads as sunken and muted, not merely faded. */
 .chart-cell-done::after {
   content: "";
   position: absolute;
-  /* Clear of the graticule, which is painted under the children. */
-  inset: 0.5px;
+  inset: 0;
+  z-index: 1;
   background: color-mix(in srgb, var(--paper-sunken) 62%, transparent);
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
 }
 
 .chart-cell-next {
   z-index: 3;
-  /* Its own rings, plus the graticule the shorthand would otherwise drop. */
   box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--ink),
-    0 0 10px 3px color-mix(in srgb, var(--ocean) 70%, transparent),
-    inset 0 0.5px 0 var(--graticule-top),
-    inset -0.5px 0 0 var(--graticule-right),
-    inset 0 -0.5px 0 var(--graticule-bottom),
-    inset 0.5px 0 0 var(--graticule-left);
+    0 0 10px 3px color-mix(in srgb, var(--ocean) 70%, transparent);
 }
 
 .chart-label {
