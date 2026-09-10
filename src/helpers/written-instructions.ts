@@ -1,5 +1,6 @@
 import { Stitch } from "../types/Stitch";
 import { RGB } from "../types/RGB";
+import { StitchType } from "../types/StitchType";
 import { indexRows, RowIndex } from "./knitting-progress";
 
 /**
@@ -13,7 +14,7 @@ import { indexRows, RowIndex } from "./knitting-progress";
  */
 
 export interface InstructionSegment {
-  /** Stitch type run, e.g. "k4" or "k3tog". */
+  /** Stitch type run, e.g. "k4" or "s2kp". */
   text: string;
   colour: RGB;
   count: number;
@@ -28,6 +29,22 @@ export interface RowInstruction {
 
 const sameColour = (a: RGB, b: RGB) =>
   a[0] === b[0] && a[1] === b[1] && a[2] === b[2];
+
+/**
+ * What to call each stitch in the instructions.
+ *
+ * The double decrease is knitted as a centred double decrease - slip two, knit
+ * one, pass the two slipped stitches over - which is what the chart's mark
+ * says too. It is called k3tog inside the code, because that is what saved
+ * patterns have recorded since before it had a name, and renaming the type
+ * would strand every pattern already in someone's browser.
+ */
+const abbreviation: Record<StitchType, string> = {
+  k1: "k1",
+  join: "k1",
+  k2tog: "k2tog",
+  k3tog: "s2kp",
+};
 
 /**
  * A row becomes runs of "same stitch type, same colour", which is how a
@@ -58,7 +75,11 @@ const segmentsFor = (rowStitches: Stitch[]): InstructionSegment[] => {
     }
 
     // Decreases are never merged: each one is a distinct instruction.
-    segments.push({ text: stitch.type, colour: stitch.colour, count: 1 });
+    segments.push({
+      text: abbreviation[stitch.type],
+      colour: stitch.colour,
+      count: 1,
+    });
   });
 
   return segments;

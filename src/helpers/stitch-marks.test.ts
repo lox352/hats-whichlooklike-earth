@@ -24,14 +24,25 @@ describe("stitchMarkPath", () => {
    * of hand-tuned offsets and sat half a pixel left of centre, with twice as
    * much room above them as below.
    */
-  it("centres the k3tog chevron on the middle of the cell", () => {
+  it("centres the s2kp mark on the middle of the cell", () => {
     const points = pointsIn(stitchMarkPath("k3tog", 0, 0, 10)!);
-    expect(points).toHaveLength(3);
-    const [left, apex, right] = points;
+    // A chevron, then the middle leg: apex to the bottom.
+    expect(points).toHaveLength(5);
+    const [left, apex, right, legTop, legBottom] = points;
     expect(apex[0]).toBe(5);
     // The two feet are the same distance out, and level with each other.
     expect(5 - left[0]).toBe(right[0] - 5);
     expect(left[1]).toBe(right[1]);
+    // The leg hangs from the apex, straight down, to the feet.
+    expect(legTop).toEqual(apex);
+    expect(legBottom[0]).toBe(apex[0]);
+    expect(legBottom[1]).toBe(left[1]);
+  });
+
+  it("gives the centred decrease three legs and the leaning one just the one", () => {
+    const legs = (path: string) => path.split("L").length - 1;
+    expect(legs(stitchMarkPath("k3tog", 0, 0, 10)!)).toBe(3);
+    expect(legs(stitchMarkPath("k2tog", 0, 0, 10)!)).toBe(1);
   });
 
   it("leaves the same room on every side", () => {

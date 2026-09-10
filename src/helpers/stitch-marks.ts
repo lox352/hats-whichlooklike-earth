@@ -4,11 +4,11 @@ import { StitchType } from "../types/StitchType";
  * The decrease marks, in one place.
  *
  * The screen chart drew these with rotated one-pixel borders and the exported
- * SVG with paths, so the same stitch had two different symbols: a fan of three
- * lines on screen, a chevron on paper. And the screen one was not quite
- * centred - its apex sat half a pixel left of the middle of the cell, and it
- * left twice as much room above as below - because the offsets were hand
- * tuned against a ten pixel cell. Both charts now draw from here.
+ * SVG with paths, so the same stitch had two different symbols: three legs on
+ * screen, two on paper. Three is the right answer - see the s2kp mark below -
+ * but the screen version was not centred, because its offsets were hand tuned
+ * against a ten pixel cell: the apex sat half a pixel left of the middle, with
+ * twice as much room above it as below. Both charts now draw from here.
  */
 
 /** How far the mark keeps clear of the cell's edges, as a fraction of a cell. */
@@ -42,9 +42,17 @@ export const stitchMarkPath = (
 
   // A right-leaning stroke, the usual mark for "knit two together".
   if (type === "k2tog") return `M${left} ${bottom}L${right} ${top}`;
-  // A chevron: three stitches converging into one.
+  /*
+   * The centred double decrease, s2kp: a chevron with a leg down the middle.
+   *
+   * Three legs, not two. Two would be the mark for a decrease that leans, and
+   * this one does not - the middle stitch finishes on top and the leg says so.
+   */
   if (type === "k3tog") {
-    return `M${left} ${bottom}L${middle} ${top}L${right} ${bottom}`;
+    return (
+      `M${left} ${bottom}L${middle} ${top}L${right} ${bottom}` +
+      `M${middle} ${top}L${middle} ${bottom}`
+    );
   }
   return undefined;
 };
