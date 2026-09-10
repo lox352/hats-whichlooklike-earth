@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Stitch } from "../types/Stitch";
 import { downloadChartPng, downloadChartSvg } from "../helpers/chart-export";
+import { useYarns } from "../useYarns";
 
 interface ChartActionsProps {
   stitches: Stitch[];
@@ -28,6 +29,7 @@ const safeFilename = (name: string) =>
 
 /** Print the chart, or take it away as a file. */
 const ChartActions: React.FC<ChartActionsProps> = ({ stitches, name }) => {
+  const { yarns } = useYarns();
   const [problem, setProblem] = useState<string | null>(null);
 
   const withReporting = (action: () => void | Promise<void>) => async () => {
@@ -57,7 +59,7 @@ const ChartActions: React.FC<ChartActionsProps> = ({ stitches, name }) => {
         type="button"
         style={linkStyle}
         onClick={withReporting(() =>
-          downloadChartSvg(stitches, safeFilename(name))
+          downloadChartSvg(stitches, safeFilename(name), yarns)
         )}
       >
         Download SVG
@@ -66,7 +68,7 @@ const ChartActions: React.FC<ChartActionsProps> = ({ stitches, name }) => {
         type="button"
         style={linkStyle}
         onClick={withReporting(() =>
-          downloadChartPng(stitches, safeFilename(name))
+          downloadChartPng(stitches, safeFilename(name), yarns)
         )}
       >
         Download PNG

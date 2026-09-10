@@ -5,17 +5,20 @@ import KnittingPattern from "../KnittingPattern";
 import KnittingMode from "./KnittingMode";
 import ChartActions from "./ChartActions";
 import ChartPrintSheet from "./ChartPrintSheet";
+import YarnChoicesEditor from "./YarnChoices";
 import {
   patternsChangedEvent,
   percentComplete,
   readPattern,
   setProgress,
 } from "../helpers/pattern-storage";
+import { useYarns } from "../useYarns";
 
 const SavedPattern: React.FC = () => {
   const { patternId } = useParams();
   const navigate = useNavigate();
 
+  const { yarns, setYarns } = useYarns();
   const [recordingProgress, setRecordingProgress] = React.useState(false);
   /*
    * Miscounting is the normal failure mode when knitting, so every change is
@@ -111,6 +114,7 @@ const SavedPattern: React.FC = () => {
         stitches={savedPattern.stitches}
         name={savedPattern.name ?? "saved-pattern"}
       />
+      <YarnChoicesEditor yarns={yarns} setYarns={setYarns} />
       {!recordingProgress && (
         <div className="screen-only" style={{ textAlign: "right" }}>
           <button

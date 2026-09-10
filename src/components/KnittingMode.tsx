@@ -10,6 +10,8 @@ import {
   upcomingRuns,
 } from "../helpers/knitting-progress";
 import "./KnittingMode.css";
+import { useYarns } from "../useYarns";
+import { cssColour, displayYarn } from "../helpers/yarn-preference";
 
 interface KnittingModeProps {
   stitches: Stitch[];
@@ -20,18 +22,6 @@ interface KnittingModeProps {
   canUndo: boolean;
   onUndo: () => void;
 }
-
-const yarnNames: Record<string, string> = {
-  "119,159,196": "ocean",
-  "178,200,169": "land",
-  "233,240,248": "glacier",
-  "241,231,212": "ice shelf",
-};
-
-const yarnName = (colour: RGB) =>
-  yarnNames[colour.join(",")] ?? `rgb(${colour.join(",")})`;
-
-const swatch = (colour: RGB) => `rgb(${colour.join(",")})`;
 
 /**
  * The view you use while actually knitting.
@@ -54,6 +44,10 @@ const KnittingMode: React.FC<KnittingModeProps> = ({
   canUndo,
   onUndo,
 }) => {
+  const { yarns } = useYarns();
+  const yarnName = (colour: RGB) => displayYarn(colour, yarns).name;
+  const swatch = (colour: RGB) => cssColour(displayYarn(colour, yarns).colour);
+
   const index = useMemo(() => indexRows(stitches), [stitches]);
   const position = useMemo(
     () => positionOf(stitches, progress, index),

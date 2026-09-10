@@ -7,6 +7,7 @@ import Design from "./components/Design";
 import Render from "./components/Render";
 import SavedRender from "./components/SavedRender";
 import { Stitch } from "./types/Stitch";
+import { YarnProvider } from "./YarnContext";
 import Pattern from "./components/Pattern";
 import SavedPattern from "./components/SavedPattern";
 
@@ -23,7 +24,8 @@ function App() {
   const [stitches, setStitches] = useState<Stitch[]>([]);
 
   return (
-    <Router>
+    <YarnProvider>
+      <Router>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/design" element={<Design />} />
@@ -35,7 +37,8 @@ function App() {
         <Route path="/pattern" element={<Pattern stitches={stitches} />} />
         <Route path="/pattern/:patternId" element={<SavedPattern />} />
       </Routes>
-    </Router>
+      </Router>
+    </YarnProvider>
   );
 }
 

@@ -2,6 +2,8 @@ import React, { useMemo } from "react";
 import { Stitch } from "./types/Stitch";
 import { layOutStitches, StitchPosition } from "./helpers/pattern-layout";
 import "./KnittingPattern.css";
+import { useYarns } from "./useYarns";
+import { cssColour, displayYarn, YarnChoices } from "./helpers/yarn-preference";
 
 interface KnittingPatternProps {
   stitches: Stitch[];
@@ -66,14 +68,15 @@ const StitchBox: React.FC<{
   numCols: number;
   completed: boolean;
   isNext?: boolean;
-}> = React.memo(({ stitch, position, numRows, numCols, completed, isNext }) => (
+  yarns: YarnChoices;
+}> = React.memo(({ stitch, position, numRows, numCols, completed, isNext, yarns }) => (
   <div
     id={`stitch-${stitch.id}-row-${position.row}-col-${position.col}`}
     data-next-stitch={isNext ? "true" : undefined}
     style={{
       gridRow: numRows + position.row,
       gridColumn: numCols + position.col,
-      backgroundColor: `rgb(${stitch.colour.join(",")})`,
+      backgroundColor: cssColour(displayYarn(stitch.colour, yarns).colour),
       border: "1px solid black",
       borderLeftWidth: (position.col - 1) % 5 === 0 ? "2px" : "1px",
       borderTopWidth: (position.row - 1) % 5 === 0 ? "2px" : "1px",
@@ -148,6 +151,7 @@ const KnittingPattern: React.FC<KnittingPatternProps> = ({
   progress,
   followProgress = false,
 }) => {
+  const { yarns } = useYarns();
   const gridRef = React.useRef<HTMLDivElement>(null);
   const nextStitchId = followProgress ? progress + 1 : undefined;
 
@@ -210,6 +214,7 @@ const KnittingPattern: React.FC<KnittingPatternProps> = ({
               numCols={numCols}
               completed={stitch.id <= progress}
               isNext={stitch.id === nextStitchId}
+              yarns={yarns}
             />
           );
         })}

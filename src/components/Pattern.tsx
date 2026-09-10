@@ -4,9 +4,11 @@ import { Stitch } from "../types/Stitch";
 import KnittingPattern from "../KnittingPattern";
 import ChartActions from "./ChartActions";
 import ChartPrintSheet from "./ChartPrintSheet";
+import YarnChoicesEditor from "./YarnChoices";
 import { bareIdFor, createPattern } from "../helpers/pattern-storage";
 import { designFromSearchParams } from "../helpers/design-url";
 import { readDyedHat } from "../helpers/design-session";
+import { useYarns } from "../useYarns";
 
 interface PatternProps {
   stitches: Stitch[];
@@ -29,6 +31,7 @@ const Pattern: React.FC<PatternProps> = ({ stitches }) => {
     [searchParams]
   );
 
+  const { yarns, setYarns } = useYarns();
   const [patternSaved, setPatternSaved] = useState(false);
 
   /*
@@ -83,6 +86,7 @@ const Pattern: React.FC<PatternProps> = ({ stitches }) => {
       </div>
       <ChartPrintSheet stitches={charted} title="Hat Pattern" />
       <ChartActions stitches={charted} name="hat-pattern" />
+      <YarnChoicesEditor yarns={yarns} setYarns={setYarns} />
       <div className="screen-only" style={{ textAlign: "right" }}>
         <button
           style={{

@@ -1,5 +1,6 @@
 import { Stitch } from "../types/Stitch";
 import { layOutStitches } from "./pattern-layout";
+import { displayYarn, YarnChoices } from "./yarn-preference";
 
 /**
  * Builds the chart as an SVG from the layout data, rather than trying to
@@ -16,6 +17,8 @@ export interface ChartSvgOptions {
   gridColour?: string;
   /** Every nth line is drawn heavier, to make counting easier. */
   emphasisEvery?: number;
+  /** How to draw each of the earth's colours; defaults to the earth's own. */
+  yarns?: YarnChoices;
 }
 
 const defaults = {
@@ -24,7 +27,7 @@ const defaults = {
   background: "#ffffff",
   gridColour: "#334155",
   emphasisEvery: 5,
-} satisfies Required<ChartSvgOptions>;
+} satisfies Omit<Required<ChartSvgOptions>, "yarns">;
 
 /**
  * Stitch colours are rendered into SVG markup, and stitches can come from
@@ -93,6 +96,7 @@ export const chartToSvg = (
     ...defaults,
     ...options,
   };
+  const yarns = options.yarns;
 
   const charted = stitches.filter((stitch) => stitch.id !== 0);
   const { positions, numRows, numCols } = layOutStitches(charted);
@@ -116,7 +120,7 @@ export const chartToSvg = (
     const y = row * cell;
     cells.push(
       `<rect x="${x}" y="${y}" width="${cell}" height="${cell}" fill="${safeColour(
-        stitch.colour
+        yarns ? displayYarn(stitch.colour, yarns).colour : stitch.colour
       )}"/>`
     );
     const symbol = decreaseSymbol(stitch.type, x, y, cell, "#1f2937");
@@ -190,8 +194,12 @@ const triggerDownload = (blob: Blob, filename: string): void => {
   setTimeout(() => URL.revokeObjectURL(url), 10000);
 };
 
-export const downloadChartSvg = (stitches: Stitch[], filename: string): void => {
-  const { svg } = chartToSvg(stitches);
+export const downloadChartSvg = (
+  stitches: Stitch[],
+  filename: string,
+  yarns?: YarnChoices
+): void => {
+  const { svg } = chartToSvg(stitches, { yarns });
   triggerDownload(
     new Blob([svg], { type: "image/svg+xml;charset=utf-8" }),
     `${filename}.svg`
@@ -205,9 +213,10 @@ export const downloadChartSvg = (stitches: Stitch[], filename: string): void => 
 export const downloadChartPng = async (
   stitches: Stitch[],
   filename: string,
+  yarns?: YarnChoices,
   scale = 3
 ): Promise<void> => {
-  const { svg, width, height } = chartToSvg(stitches);
+  const { svg, width, height } = chartToSvg(stitches, { yarns });
   const source = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 
   const image = new Image();
