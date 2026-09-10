@@ -14,6 +14,7 @@ import InputField from "./InputField";
 import CoordinatesInput from "./CoordinatesInput";
 import ToggleAdvancedOptions from "./ToggleAdvancedOptions";
 import ShareDesignLink from "./ShareDesignLink";
+import PlaceSearch from "./PlaceSearch";
 
 type LocationType =
   | "North Pole"
@@ -178,6 +179,12 @@ const Design: React.FC = () => {
             <option value="Custom Location">Custom Location</option>
           </select>
         </div>
+        <PlaceSearch
+          onPick={(coordinates) => {
+            setCoordinates(coordinates);
+            setLocationType(locationTypeFor(coordinates));
+          }}
+        />
         <CoordinatesInput
           coordinates={design.orientation.coordinates}
           setCoordinates={(coordinates) => {
