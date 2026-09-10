@@ -1,15 +1,13 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Stitch } from "./types/Stitch";
+import { layOutStitches, StitchPosition } from "./helpers/pattern-layout";
 
 interface KnittingPatternProps {
   stitches: Stitch[];
   progress: number;
 }
 
-interface StitchPosition {
-  row: number;
-  col: number;
-}
+const cellSize = 10;
 
 const LabelRight: React.FC<{
   row: number;
@@ -64,9 +62,8 @@ const StitchBox: React.FC<{
   numRows: number;
   numCols: number;
   completed: boolean;
-}> = ({ stitch, position, numRows, numCols, completed }) => (
+}> = React.memo(({ stitch, position, numRows, numCols, completed }) => (
   <div
-    key={`stitch-${stitch.id}-row-${position.row}-col-${position.col}`}
     id={`stitch-${stitch.id}-row-${position.row}-col-${position.col}`}
     style={{
       gridRow: numRows + position.row,
@@ -133,51 +130,25 @@ const StitchBox: React.FC<{
       </React.Fragment>
     )}
   </div>
-);
+));
 
 const KnittingPattern: React.FC<KnittingPatternProps> = ({
   stitches,
   progress,
 }) => {
-  const stitchPositions: { [id: number]: StitchPosition } = {};
-  const filteredStitches = stitches.filter((stitch) => stitch.id !== 0);
-  filteredStitches.forEach((stitch, index) => {
-    if (index === 0) {
-      stitchPositions[stitch.id] = { row: 0, col: 0 };
-      return;
-    }
-
-    const linksToConsider = stitch.links.filter((id) => id !== 0).slice(0, -1);
-
-    if (linksToConsider.length === 0) {
-      const linkedStitchPos =
-        stitchPositions[stitch.links[stitch.links.length - 1]];
-      stitchPositions[stitch.id] = {
-        row: linkedStitchPos.row,
-        col: linkedStitchPos.col - 1,
-      };
-    } else {
-      const middleIndex = Math.floor(linksToConsider.length / 2);
-      const middleLink = linksToConsider[middleIndex];
-      const middleLinkPos = stitchPositions[middleLink];
-      stitchPositions[stitch.id] = {
-        row: middleLinkPos.row - 1,
-        col: middleLinkPos.col,
-      };
-    }
-  });
-
-  const { minRow, minCol } = Object.values(stitchPositions).reduce(
-    (acc, pos) => {
-      acc.minRow = Math.min(acc.minRow, pos.row);
-      acc.minCol = Math.min(acc.minCol, pos.col);
-      return acc;
-    },
-    { minRow: Infinity, minCol: Infinity }
+  const filteredStitches = useMemo(
+    () => stitches.filter((stitch) => stitch.id !== 0),
+    [stitches]
   );
 
-  const numRows = 1 - minRow;
-  const numCols = 1 - minCol;
+  const { positions, numRows, numCols } = useMemo(
+    () => layOutStitches(filteredStitches),
+    [filteredStitches]
+  );
+
+  if (numRows === 0 || numCols === 0) {
+    return <p>This pattern has no stitches to chart.</p>;
+  }
 
   return (
     <div>
@@ -185,17 +156,18 @@ const KnittingPattern: React.FC<KnittingPatternProps> = ({
         id="printable-section"
         style={{
           display: "grid",
-          gridTemplateRows: `repeat(${numRows + 1}, 10px)`,
-          gridTemplateColumns: `repeat(${numCols + 1}, 10px)`,
+          gridTemplateRows: `repeat(${numRows + 1}, ${cellSize}px)`,
+          gridTemplateColumns: `repeat(${numCols + 1}, ${cellSize}px)`,
           gap: "0px",
-          minHeight: `${(numRows + 2) * 10}px`,
+          minHeight: `${(numRows + 2) * cellSize}px`,
           overflowX: "auto",
           overflowY: "hidden",
           marginBottom: "10px",
         }}
       >
         {filteredStitches.map((stitch) => {
-          const position = stitchPositions[stitch.id];
+          const position = positions[stitch.id];
+          if (!position) return null;
           return (
             <StitchBox
               key={`box-${stitch.id}`}
@@ -208,30 +180,28 @@ const KnittingPattern: React.FC<KnittingPatternProps> = ({
           );
         })}
         {[...Array(numCols)].map((_, colIndex) => {
-          if ((colIndex + 1) % 5 === 0) {
-            return (
-              <LabelBottom
-                key={`col-label-${colIndex}`}
-                row={numRows + 1}
-                col={numCols - colIndex}
-              >
-                {colIndex + 1}
-              </LabelBottom>
-            );
-          }
+          if ((colIndex + 1) % 5 !== 0) return null;
+          return (
+            <LabelBottom
+              key={`col-label-${colIndex}`}
+              row={numRows + 1}
+              col={numCols - colIndex}
+            >
+              {colIndex + 1}
+            </LabelBottom>
+          );
         })}
         {[...Array(numRows)].map((_, rowIndex) => {
-          if ((rowIndex + 1) % 5 === 0) {
-            return (
-              <LabelRight
-                key={`col-label-${rowIndex}`}
-                col={numCols + 1}
-                row={numRows - rowIndex}
-              >
-                {rowIndex + 1}
-              </LabelRight>
-            );
-          }
+          if ((rowIndex + 1) % 5 !== 0) return null;
+          return (
+            <LabelRight
+              key={`row-label-${rowIndex}`}
+              col={numCols + 1}
+              row={numRows - rowIndex}
+            >
+              {rowIndex + 1}
+            </LabelRight>
+          );
         })}
       </div>
     </div>
