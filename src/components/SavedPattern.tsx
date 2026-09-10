@@ -6,6 +6,7 @@ import KnittingMode from "./KnittingMode";
 import ChartActions from "./ChartActions";
 import ChartPrintSheet from "./ChartPrintSheet";
 import YarnChoicesEditor from "./YarnChoices";
+import WrittenInstructions from "./WrittenInstructions";
 import {
   patternsChangedEvent,
   percentComplete,
@@ -115,6 +116,7 @@ const SavedPattern: React.FC = () => {
         name={savedPattern.name ?? "saved-pattern"}
       />
       <YarnChoicesEditor yarns={yarns} setYarns={setYarns} />
+      <WrittenInstructions stitches={savedPattern.stitches} />
       {!recordingProgress && (
         <div className="screen-only" style={{ textAlign: "right" }}>
           <button

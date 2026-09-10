@@ -5,6 +5,7 @@ import KnittingPattern from "../KnittingPattern";
 import ChartActions from "./ChartActions";
 import ChartPrintSheet from "./ChartPrintSheet";
 import YarnChoicesEditor from "./YarnChoices";
+import WrittenInstructions from "./WrittenInstructions";
 import { bareIdFor, createPattern } from "../helpers/pattern-storage";
 import { designFromSearchParams } from "../helpers/design-url";
 import { readDyedHat } from "../helpers/design-session";
@@ -87,6 +88,7 @@ const Pattern: React.FC<PatternProps> = ({ stitches }) => {
       <ChartPrintSheet stitches={charted} title="Hat Pattern" />
       <ChartActions stitches={charted} name="hat-pattern" />
       <YarnChoicesEditor yarns={yarns} setYarns={setYarns} />
+      <WrittenInstructions stitches={charted} />
       <div className="screen-only" style={{ textAlign: "right" }}>
         <button
           style={{
