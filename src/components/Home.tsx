@@ -14,6 +14,7 @@ import Button from "./ui/Button";
 import Dialog from "./ui/Dialog";
 import NameDialog from "./ui/NameDialog";
 import ProgressRing from "./ProgressRing";
+import { useReveal } from "../useReveal";
 import "./Home.css";
 
 const formatSavedAt = (savedAt: string) =>
@@ -25,22 +26,41 @@ const formatSavedAt = (savedAt: string) =>
     minute: "numeric",
   });
 
+/** A section that rises into view the first time it is scrolled to. */
+const RevealSection: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const { ref, shown } = useReveal<HTMLElement>();
+  return (
+    <section ref={ref} className={`reveal${shown ? " reveal-shown" : ""}`}>
+      {children}
+    </section>
+  );
+};
+
 const PatternCard: React.FC<{
   pattern: SavedPattern;
   onRename: () => void;
   onDelete: () => void;
 }> = ({ pattern, onRename, onDelete }) => {
   const navigate = useNavigate();
+  const { ref, shown } = useReveal<HTMLLIElement>();
   const id = bareIdFor(pattern.id);
   const percent = percentComplete(pattern);
   const started = percent > 0;
+  const finished = percent >= 100;
 
   return (
-    <li className="pattern-card">
+    <li
+      ref={ref}
+      className={`pattern-card reveal${shown ? " reveal-shown" : ""}`}
+    >
       <div className="pattern-card-head">
         <div>
           <h3 className="pattern-name">{pattern.name ?? "Saved Pattern"}</h3>
-          <div className="pattern-date">{formatSavedAt(pattern.savedAt)}</div>
+          <div className="pattern-date">
+            {finished ? "Finished" : formatSavedAt(pattern.savedAt)}
+          </div>
         </div>
         <ProgressRing
           percent={percent}
@@ -49,7 +69,7 @@ const PatternCard: React.FC<{
       </div>
       <div className="pattern-card-actions">
         <Button variant="primary" onClick={() => navigate(`/pattern/${id}`)}>
-          {started ? "Keep knitting" : "Start knitting"}
+          {finished ? "See it" : started ? "Keep knitting" : "Start knitting"}
         </Button>
         <Button variant="secondary" onClick={() => navigate(`/render/${id}`)}>
           See the hat
@@ -121,7 +141,7 @@ const Home: React.FC = () => {
         </div>
       </section>
 
-      <section>
+      <RevealSection>
         <h2 className="section-heading">Your hats</h2>
         {savedPatterns.length === 0 ? (
           <div className="empty-state">
@@ -143,7 +163,7 @@ const Home: React.FC = () => {
             ))}
           </ul>
         )}
-      </section>
+      </RevealSection>
 
       <NameDialog
         open={renaming !== null}

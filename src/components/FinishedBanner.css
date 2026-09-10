@@ -1,0 +1,56 @@
+.finished {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--land-deep) 40%, var(--paper-edge));
+  border-radius: var(--radius-lg);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--land) 22%, var(--paper-raised)),
+    var(--paper-raised) 60%
+  );
+  padding: 20px 22px;
+  margin-bottom: 22px;
+  box-shadow: var(--shadow-sm);
+}
+
+.finished-title {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  margin: 0 0 6px;
+}
+
+.finished-text {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  margin: 0;
+  max-width: 52ch;
+}
+
+/* A single slow sweep of light across it, once, on arrival. */
+.finished::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 35%,
+    color-mix(in srgb, var(--glacier) 55%, transparent) 50%,
+    transparent 65%
+  );
+  transform: translateX(-100%);
+  animation: finished-sheen 1.5s 0.25s ease-out 1 forwards;
+  pointer-events: none;
+}
+
+@keyframes finished-sheen {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .finished::after {
+    animation: none;
+    opacity: 0;
+  }
+}

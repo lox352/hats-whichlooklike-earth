@@ -10,11 +10,13 @@ import WrittenInstructions from "./WrittenInstructions";
 import PageLayout from "./ui/PageLayout";
 import Button from "./ui/Button";
 import ProgressRing from "./ProgressRing";
+import FinishedBanner from "./FinishedBanner";
 import {
   patternsChangedEvent,
   percentComplete,
   readPattern,
   setProgress,
+  knittableStitchCount,
 } from "../helpers/pattern-storage";
 import { useYarns } from "../useYarns";
 
@@ -83,9 +85,13 @@ const SavedPattern: React.FC = () => {
 
   const percent = percentComplete(savedPattern);
   const name = savedPattern.name ?? "Saved Pattern";
+  const finished = percent >= 100;
 
   return (
     <PageLayout title={name} step="pattern">
+      {finished && (
+        <FinishedBanner stitches={knittableStitchCount(savedPattern)} />
+      )}
       <div className="screen-only">
         <KnittingPattern
           stitches={savedPattern.stitches}
@@ -100,13 +106,31 @@ const SavedPattern: React.FC = () => {
 
       {!recordingProgress && (
         <div className="render-actions screen-only">
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={() => setRecordingProgress(true)}
-          >
-            {percent > 0 ? "Keep knitting" : "Start knitting"}
-          </Button>
+          {finished ? (
+            <>
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={() => navigate("/design")}
+              >
+                Knit another
+              </Button>
+              <Button
+                variant="quiet"
+                onClick={() => setRecordingProgress(true)}
+              >
+                Adjust the count
+              </Button>
+            </>
+          ) : (
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={() => setRecordingProgress(true)}
+            >
+              {percent > 0 ? "Keep knitting" : "Start knitting"}
+            </Button>
+          )}
           <Button variant="quiet" onClick={() => navigate("/")}>
             Back to your hats
           </Button>

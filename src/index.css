@@ -277,3 +277,44 @@ hr {
     scroll-behavior: auto !important;
   }
 }
+
+/* Reveal on first scroll into view. See useReveal. */
+.reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+
+.reveal-shown {
+  opacity: 1;
+  transform: none;
+}
+
+/*
+ * A fade between pages, so the three steps feel like one continuous thing
+ * rather than four unrelated documents.
+ */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.page {
+  animation: page-in 0.28s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+  .page {
+    animation: none;
+  }
+}
