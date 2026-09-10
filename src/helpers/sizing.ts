@@ -14,13 +14,24 @@ export interface Gauge {
   rowsPer10cm: number;
 }
 
+/**
+ * A measured gauge in a wool double-knit on the needles this site was built
+ * around, rather than a round number. Everything else defaults from it, so the
+ * numbers on the design page agree with each other out of the box.
+ */
 export const defaultGauge: Gauge = {
-  stitchesPer10cm: 22,
-  rowsPer10cm: 30,
+  stitchesPer10cm: 23,
+  rowsPer10cm: 26,
 };
 
-/** A typical adult head, in centimetres. */
+/** A typical adult head, in centimetres, measured round the widest part. */
 export const defaultHeadCircumference = 56;
+
+/**
+ * Height of the straight part of the hat, brim to where the crown starts, in
+ * centimetres. A folded-brim beanie is about this before the shaping begins.
+ */
+export const defaultBodyHeight = 13.5;
 
 /**
  * Hats are knitted smaller than the head so they stay on. 10% is the usual

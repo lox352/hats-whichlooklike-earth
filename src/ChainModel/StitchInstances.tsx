@@ -5,6 +5,7 @@ import { RapierRigidBody } from "@react-three/rapier";
 import { Stitch } from "../types/Stitch";
 import { createStitchGeometry } from "./stitch-geometry";
 import { dyeAmount } from "../helpers/dye-sweep";
+import { HatBounds } from "./FitToHat";
 
 interface StitchInstancesProps {
   stitches: Stitch[];
@@ -18,6 +19,11 @@ interface StitchInstancesProps {
   colours: React.MutableRefObject<Float32Array | null>;
   /** Per-stitch sweep offset in 0..1, so the dye arrives pole to pole. */
   dyeOrder: React.MutableRefObject<Float32Array | null>;
+  /**
+   * Filled in as this loop runs, for the camera to frame. Measured here
+   * because every body's position is read anyway.
+   */
+  bounds: React.MutableRefObject<HatBounds>;
 }
 
 /** Undyed wool, before the earth is applied. */
@@ -58,6 +64,7 @@ const StitchInstances: React.FC<StitchInstancesProps> = ({
   dyeProgress,
   colours,
   dyeOrder,
+  bounds,
 }) => {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const geometry = useMemo(() => createStitchGeometry(), []);
@@ -108,9 +115,19 @@ const StitchInstances: React.FC<StitchInstancesProps> = ({
     const order = dyeOrder.current;
     const swept = dyeProgress.current;
 
+    let minX = Infinity, minY = Infinity, minZ = Infinity;
+    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+
     for (let index = 0; index < drawn.length; index++) {
       const stitch = drawn[index];
       if (!readPosition(stitch.id, position)) continue;
+
+      if (position.x < minX) minX = position.x;
+      if (position.y < minY) minY = position.y;
+      if (position.z < minZ) minZ = position.z;
+      if (position.x > maxX) maxX = position.x;
+      if (position.y > maxY) maxY = position.y;
+      if (position.z > maxZ) maxZ = position.z;
 
       // Across the round, and down to the row below. Either may be missing on
       // the cast-on row or at the seam, so fall back to something sane.
@@ -177,14 +194,18 @@ const StitchInstances: React.FC<StitchInstancesProps> = ({
 
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+
+    if (Number.isFinite(minX) && Number.isFinite(maxY)) {
+      bounds.current.min.set(minX, minY, minZ);
+      bounds.current.max.set(maxX, maxY, maxZ);
+      bounds.current.valid = true;
+    }
   });
 
   return (
     <instancedMesh
       ref={meshRef}
       args={[geometry, undefined, drawn.length]}
-      castShadow
-      receiveShadow
       frustumCulled={false}
     >
       <meshStandardMaterial

@@ -74,6 +74,9 @@ const PatternCard: React.FC<{
         <Button variant="secondary" onClick={() => navigate(`/render/${id}`)}>
           See the hat
         </Button>
+      </div>
+      {/* Housekeeping, on its own line under the two things you came for. */}
+      <div className="pattern-card-admin">
         <Button variant="quiet" onClick={onRename}>
           Rename
         </Button>

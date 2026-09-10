@@ -43,8 +43,23 @@ const StitchBox: React.FC<{
     <div
       className={[
         "chart-cell",
-        (position.col - 1) % emphasisEvery === 0 ? "chart-cell-major-col" : "",
-        (position.row - 1) % emphasisEvery === 0 ? "chart-cell-major-row" : "",
+        /*
+         * The heavy lines fall *after* every fifth stitch and row, counting
+         * from the bottom right as you knit.
+         *
+         * A cell carries its own right and bottom borders, and stitch number
+         * n sits at col 1 - n (so stitch 1 is col 0, and numbers grow
+         * leftwards). The line between stitch 5 and stitch 6 is therefore the
+         * right-hand border of stitch 6, which is col -5. Marking col -5,
+         * -10, -15 puts the line after each fifth stitch; marking stitch 5
+         * itself, as this used to, put it between 4 and 5.
+         */
+        position.col !== 0 && position.col % emphasisEvery === 0
+          ? "chart-cell-major-col"
+          : "",
+        position.row !== 0 && position.row % emphasisEvery === 0
+          ? "chart-cell-major-row"
+          : "",
         completed ? "chart-cell-done" : "",
         isNext ? "chart-cell-next" : "",
       ]

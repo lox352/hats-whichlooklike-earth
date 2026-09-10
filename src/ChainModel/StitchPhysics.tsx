@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import StitchBody from "./StitchBody";
 import StitchInstances from "./StitchInstances";
+import { HatBounds } from "./FitToHat";
 import Link from "./Link";
 import { RapierRigidBody } from "@react-three/rapier";
 import { Stitch } from "../types/Stitch";
@@ -26,6 +27,8 @@ interface StitchPhysicsProps {
   onAnyStitchRendered?: () => void;
   /** Fired once the whole hat has been coloured and the dye has finished. */
   onDyeingComplete?: () => void;
+  /** Measured by the instanced renderer, for the camera to frame. */
+  bounds: React.MutableRefObject<HatBounds>;
 }
 
 const StitchPhysics: React.FC<StitchPhysicsProps> = ({
@@ -36,6 +39,7 @@ const StitchPhysics: React.FC<StitchPhysicsProps> = ({
   setSimulationActive,
   onAnyStitchRendered,
   onDyeingComplete,
+  bounds,
 }) => {
   const setRefsVersion = useState(0)[1];
   const frameNumber = useRef(0);
@@ -221,6 +225,7 @@ const StitchPhysics: React.FC<StitchPhysicsProps> = ({
           dyeProgress={dyeProgress}
           colours={targetColours}
           dyeOrder={dyeOrder}
+          bounds={bounds}
         />
       )}
       {stitches.flatMap((stitch) =>

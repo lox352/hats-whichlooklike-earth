@@ -3,7 +3,13 @@ import { GlobalCoordinates } from "./types/GlobalCoordinates";
 const adjacentStitchDistance = 2;
 const verticalStitchDistance = 1.6;
 
-const defaultStitchesPerRow = 160;
+/*
+ * These are what the default head, height and gauge in helpers/sizing work out
+ * to, so "work out my stitches" on a fresh page changes nothing. They used to
+ * be 160 and 35, which no realistic gauge produced: pressing the button
+ * immediately rewrote 160 as 110. There is a test tying them together.
+ */
+const defaultStitchesPerRow = 120;
 const defaultNumberOfRows = 35;
 
 /**

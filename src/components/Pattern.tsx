@@ -76,9 +76,7 @@ const Pattern: React.FC<PatternProps> = ({ stitches }) => {
         <KnittingPattern stitches={charted} progress={0} />
       </div>
       <ChartPrintSheet stitches={charted} title="Hat Pattern" />
-      <ChartActions stitches={charted} name="hat-pattern" />
       <YarnChoicesEditor yarns={yarns} setYarns={setYarns} />
-      <WrittenInstructions stitches={charted} />
 
       <div className="render-actions screen-only">
         <Button variant="primary" size="lg" onClick={() => setNaming(true)}>
@@ -95,6 +93,13 @@ const Pattern: React.FC<PatternProps> = ({ stitches }) => {
             {problem}
           </span>
         )}
+      </div>
+
+      {/* Taking the chart away matters less than getting on with it, so it
+          sits at the bottom. */}
+      <div className="chart-extras screen-only">
+        <WrittenInstructions stitches={charted} />
+        <ChartActions stitches={charted} name="hat-pattern" />
       </div>
 
       <NameDialog

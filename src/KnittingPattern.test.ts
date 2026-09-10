@@ -165,3 +165,38 @@ describe("layOutStitches", () => {
     expect(Number.isFinite(numCols)).toBe(true);
   });
 });
+
+/**
+ * Where the heavy grid lines fall.
+ *
+ * Stitch number n sits at col 1 - n, counting from the bottom right as you
+ * knit. Cells carry their own right border, so the line after stitch 5 is the
+ * right border of stitch 6.
+ */
+describe("heavy grid lines", () => {
+  const majorCol = (col: number) => col !== 0 && col % 5 === 0;
+  const colOf = (stitchNumber: number) => 1 - stitchNumber;
+
+  it("falls after every fifth stitch, not before", () => {
+    // Stitch 6's right border is the boundary between 5 and 6.
+    expect(majorCol(colOf(6))).toBe(true);
+    expect(majorCol(colOf(11))).toBe(true);
+    expect(majorCol(colOf(16))).toBe(true);
+  });
+
+  it("does not fall between the fourth and fifth stitch", () => {
+    // The bug this replaces marked stitch 5, separating 4 from 5.
+    expect(majorCol(colOf(5))).toBe(false);
+    expect(majorCol(colOf(10))).toBe(false);
+  });
+
+  it("does not draw one at the right-hand edge of the chart", () => {
+    expect(majorCol(colOf(1))).toBe(false);
+  });
+
+  it("marks exactly one boundary in every five stitches", () => {
+    const marked = [];
+    for (let n = 1; n <= 40; n++) if (majorCol(colOf(n))) marked.push(n);
+    expect(marked).toEqual([6, 11, 16, 21, 26, 31, 36]);
+  });
+});

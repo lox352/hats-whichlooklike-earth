@@ -129,7 +129,12 @@ export const chartToSvg = (
 
   const lines: string[] = [];
   for (let c = 0; c <= numCols; c++) {
-    const heavy = c % emphasisEvery === 0;
+    /*
+     * Heavy lines fall after every fifth stitch, counting from the right.
+     * Cell index c holds stitch number numCols - c, so the boundary after
+     * stitch 5 is the left edge of that stitch's cell.
+     */
+    const heavy = (numCols - c) % emphasisEvery === 0;
     lines.push(
       `<line x1="${c * cell}" y1="0" x2="${c * cell}" y2="${
         numRows * cell

@@ -184,3 +184,18 @@
     display: inline-block;
   }
 }
+
+/*
+ * Print and download live at the foot of the page. They matter less than
+ * getting on with the knitting, so they should not sit between the chart and
+ * the buttons you actually came for.
+ */
+.chart-extras {
+  margin-top: 34px;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}

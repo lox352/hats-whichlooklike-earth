@@ -100,9 +100,7 @@ const SavedPattern: React.FC = () => {
         />
       </div>
       <ChartPrintSheet stitches={savedPattern.stitches} title={name} />
-      <ChartActions stitches={savedPattern.stitches} name={name} />
       <YarnChoicesEditor yarns={yarns} setYarns={setYarns} />
-      <WrittenInstructions stitches={savedPattern.stitches} />
 
       {!recordingProgress && (
         <div className="render-actions screen-only">
@@ -151,6 +149,13 @@ const SavedPattern: React.FC = () => {
           </span>
         </div>
       )}
+
+      {/* Taking the chart away matters less than getting on with it, so it
+          sits at the bottom. */}
+      <div className="chart-extras screen-only">
+        <WrittenInstructions stitches={savedPattern.stitches} />
+        <ChartActions stitches={savedPattern.stitches} name={name} />
+      </div>
 
       {recordingProgress && (
         <KnittingMode

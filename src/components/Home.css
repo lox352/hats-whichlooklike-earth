@@ -145,6 +145,14 @@
   margin-top: auto;
 }
 
+.pattern-card-admin {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+  border-top: 1px solid var(--rule);
+}
+
 /* First visit: say what this is for, rather than showing nothing. */
 .empty-state {
   border: 1px dashed var(--rule-strong);
