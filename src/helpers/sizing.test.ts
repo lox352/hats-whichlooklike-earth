@@ -13,9 +13,7 @@ import {
   defaultNumberOfRows,
   defaultStitchesPerRow,
   defaultDecreaseMethod,
-  headFittedBy,
   isValidGauge,
-  negativeEase,
   rowsFor,
   stitchesPerRowFor,
 } from "./sizing";
@@ -56,11 +54,16 @@ describe("stitchesPerRowFor", () => {
     }
   });
 
-  it("gives roughly the site's own default for a typical head", () => {
-    // 56cm head, 22 sts/10cm, 10% ease -> 110 stitches. The site's stock 160
-    // corresponds to a chunkier gauge, which is why the gauge is an input.
-    expect(stitchesPerRowFor(56, { ...defaultGauge, stitchesPer10cm: 22 }, "Pyramidal")).toBe(110);
-    expect(stitchesPerRowFor(56, { ...defaultGauge, stitchesPer10cm: 32 }, "Pyramidal")).toBe(160);
+  it("follows the gauge for one head", () => {
+    // 56cm at 22 stitches per 10cm is 123.2 stitches, which rounds to 120; at
+    // 32 it is 179.2, which rounds to 180. The count is the head measurement
+    // straight through the gauge, which is why the gauge is an input.
+    expect(
+      stitchesPerRowFor(56, { ...defaultGauge, stitchesPer10cm: 22 }, "Pyramidal")
+    ).toBe(120);
+    expect(
+      stitchesPerRowFor(56, { ...defaultGauge, stitchesPer10cm: 32 }, "Pyramidal")
+    ).toBe(180);
   });
 
   it("gets bigger for a bigger head", () => {
@@ -93,16 +96,19 @@ describe("round tripping", () => {
   it("circumference and stitch count agree, within the rounding", () => {
     const count = stitchesPerRowFor(56, defaultGauge, "Pyramidal");
     const circumference = circumferenceFor(count, defaultGauge);
-    expect(Math.abs(circumference - 56 * negativeEase)).toBeLessThanOrEqual(
+    // The hat is the size of the head, so the head asked for is the target.
+    expect(Math.abs(circumference - 56)).toBeLessThanOrEqual(
       halfStep(defaultGauge) + 0.001
     );
   });
 
-  it("reports the head a count actually fits, within the rounding", () => {
-    const count = stitchesPerRowFor(56, defaultGauge, "Pyramidal");
-    expect(Math.abs(headFittedBy(count, defaultGauge) - 56)).toBeLessThanOrEqual(
-      halfStep(defaultGauge) / negativeEase + 0.001
-    );
+  it("takes nothing off the head measurement", () => {
+    for (const head of [48, 54, 56, 60, 64]) {
+      const wanted = (head / 10) * defaultGauge.stitchesPer10cm;
+      const count = stitchesPerRowFor(head, defaultGauge, "Pyramidal");
+      // Only the rounding to a workable count separates the two.
+      expect(Math.abs(count - wanted)).toBeLessThanOrEqual(pyramidalBase);
+    }
   });
 
   it("rows and body height agree", () => {

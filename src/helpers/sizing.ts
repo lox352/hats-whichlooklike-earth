@@ -55,19 +55,21 @@ export const hatHeightFromArc = (overTheTop: number): number =>
   Math.max(overTheTop, 0) / 2;
 
 
-/**
- * Hats are knitted smaller than the head so they stay on. 10% is the usual
- * allowance for a ribbed brim in a stretchy wool.
+/*
+ * The hat is knitted the size of the head, with no allowance taken off.
+ *
+ * There was a 10% negative ease here, the usual textbook allowance. It does
+ * not belong: the measurement asked for is a tape run round the head, which
+ * is already tight to the skull, so taking another tenth off it makes a hat a
+ * size too small. Anything the fabric needs to grip, it gets from being
+ * knitted to that measurement rather than from being knitted under it.
  */
-export const negativeEase = 0.9;
-
 export const stitchesPerRowFor = (
   headCircumference: number,
   gauge: Gauge,
   decreaseMethod: DecreaseMethod
 ): number => {
-  const targetCircumference = headCircumference * negativeEase;
-  const raw = (targetCircumference / 10) * gauge.stitchesPer10cm;
+  const raw = (headCircumference / 10) * gauge.stitchesPer10cm;
 
   // The pyramidal decrease needs a multiple of twice its base; the
   // hemispherical one has no such constraint but an even count still joins
@@ -175,14 +177,11 @@ export const isValidGauge = (gauge: Gauge): boolean =>
   gauge.stitchesPer10cm > 0 &&
   gauge.rowsPer10cm > 0;
 
-/**
- * The head a given stitch count will actually fit, accounting for the ease.
- * Used to tell the knitter what they have ended up with after rounding.
+/*
+ * There is no `headFittedBy` any more. With no ease, the head a count fits is
+ * the hat's own circumference, so `circumferenceFor` answers both questions
+ * and there is only one number for the design page to report.
  */
-export const headFittedBy = (
-  stitchesPerRow: number,
-  gauge: Gauge
-): number => circumferenceFor(stitchesPerRow, gauge) / negativeEase;
 
 /** What a design starts as, before anyone has chosen otherwise. */
 export const defaultDecreaseMethod: DecreaseMethod = "Pyramidal";
