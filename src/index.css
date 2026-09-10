@@ -1,11 +1,82 @@
-:root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+/* ============================================================
+   Hats Which Look Like Earth — cartographic atlas
+   ------------------------------------------------------------
+   The palette is taken from the four yarn colours the hat is
+   actually knitted in, so the interface and the hat belong to
+   the same world. Anything that has to carry text uses a
+   darkened version of those hues rather than a new colour.
+   ============================================================ */
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: rgb(20, 20, 20);
+@font-face {
+  font-family: "Fraunces";
+  font-style: normal;
+  /* Variable: one file covers the whole display range. */
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/fraunces-latin-var.woff2") format("woff2");
+}
+
+:root {
+  /* Paper */
+  --paper: #f4efe4;
+  --paper-raised: #fbf8f1;
+  --paper-sunken: #eae2d1;
+  --paper-edge: #e2d9c5;
+
+  /* Ink */
+  --ink: #22201c;
+  --ink-soft: #574f43;
+  --ink-faint: #857c6b;
+
+  /* Hairlines, as on a printed map */
+  --rule: #d8cdb6;
+  --rule-strong: #b3a68a;
+
+  /* The yarn colours themselves */
+  --ocean: #779fc4;
+  --land: #b2c8a9;
+  --glacier: #e9f0f8;
+  --ice: #f1e7d4;
+
+  /* Darkened so they can carry text at contrast */
+  --ocean-deep: #2c5f85;
+  --ocean-deeper: #1d4460;
+  --land-deep: #47673f;
+  --danger: #99392c;
+
+  --accent: var(--ocean-deep);
+  --accent-strong: var(--ocean-deeper);
+
+  /* Type */
+  --font-display: "Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia,
+    serif;
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+
+  /* A modest 1.2 scale: this is a document, not a poster. */
+  --text-xs: 0.79rem;
+  --text-sm: 0.889rem;
+  --text-base: 1rem;
+  --text-md: 1.2rem;
+  --text-lg: 1.44rem;
+  --text-xl: 1.728rem;
+  --text-2xl: 2.074rem;
+  --text-3xl: 2.488rem;
+
+  --radius: 6px;
+  --radius-lg: 10px;
+  --shadow-sm: 0 1px 2px rgba(34, 32, 28, 0.07);
+  --shadow: 0 1px 2px rgba(34, 32, 28, 0.06), 0 6px 16px rgba(34, 32, 28, 0.06);
+
+  --page-max: 68rem;
+
+  color-scheme: light;
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--ink);
+  background-color: var(--paper);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -13,13 +84,55 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
+/* An atlas read by lamplight. Same hues, inverted roles. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #16171a;
+    --paper-raised: #1e2024;
+    --paper-sunken: #101114;
+    --paper-edge: #2a2d33;
+
+    --ink: #ece6d8;
+    --ink-soft: #b3ab9a;
+    --ink-faint: #7e7768;
+
+    --rule: #33373e;
+    --rule-strong: #4a4f58;
+
+    --ocean-deep: #8fb6d8;
+    --ocean-deeper: #b3d0e6;
+    --land-deep: #a8c49c;
+    --danger: #e08375;
+
+    color-scheme: dark;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 6px 16px rgba(0, 0, 0, 0.35);
+  }
 }
-a:hover {
-  color: #535bf2;
+
+:root[data-theme="dark"] {
+  --paper: #16171a;
+  --paper-raised: #1e2024;
+  --paper-sunken: #101114;
+  --paper-edge: #2a2d33;
+
+  --ink: #ece6d8;
+  --ink-soft: #b3ab9a;
+  --ink-faint: #7e7768;
+
+  --rule: #33373e;
+  --rule-strong: #4a4f58;
+
+  --ocean-deep: #8fb6d8;
+  --ocean-deeper: #b3d0e6;
+  --land-deep: #a8c49c;
+  --danger: #e08375;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
@@ -28,33 +141,139 @@ body {
    * No `place-items` here. It is a leftover from the Vite template, where it
    * paired with `display: flex`. On a block container, `justify-items: center`
    * sets `justify-self: center` on the children, which shrink-wraps #root to
-   * its content: the whole app was rendering in a ~300px column.
+   * its content: the whole app once rendered in a ~300px column.
    */
   min-width: 320px;
   min-height: 100vh;
-  background-color: rgb(20, 20, 20);
+  color: var(--ink);
+  background-color: var(--paper);
+  /*
+   * A graticule, as faint as the grid printed under a map. Two hairline
+   * families 40px apart, fixed so it reads as the sheet rather than the
+   * content.
+   */
+  background-image: linear-gradient(
+      to right,
+      color-mix(in srgb, var(--rule) 42%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--rule) 42%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 40px 40px;
+  background-attachment: fixed;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  /* Fraunces has an optical-size axis; a touch of "soft" suits a hat site. */
+  font-variation-settings: "SOFT" 20, "WONK" 0;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin: 0 0 0.5em;
+  text-wrap: balance;
 }
 
 h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+  font-size: var(--text-3xl);
+}
+h2 {
+  font-size: var(--text-xl);
+}
+h3 {
+  font-size: var(--text-md);
+}
+
+p {
+  margin: 0 0 1em;
+  max-width: 62ch;
+}
+
+a {
+  color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  color: var(--accent-strong);
+}
+
+/* Inputs should look like fields on a form, not like the browser default. */
+input[type="number"],
+input[type="text"],
+select {
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--ink);
+  background: var(--paper-raised);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  min-height: 34px;
+}
+
+input[type="number"] {
+  font-variant-numeric: tabular-nums;
+  width: 7.5rem;
+}
+
+input[type="number"]:disabled,
+input[type="text"]:disabled,
+select:disabled {
+  opacity: 0.55;
+}
+
+input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
+}
+
+label {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+/* One visible focus treatment everywhere, rather than the UA default only. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 3px;
 }
 
 button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
+  font: inherit;
 }
-button:hover {
-  border-color: #646cff;
+
+hr {
+  border: none;
+  border-top: 1px solid var(--rule);
+  margin: 2rem 0;
 }
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+
+::selection {
+  background: color-mix(in srgb, var(--ocean) 45%, transparent);
+}
+
+/* Utilities shared by the print sheet and the screen views. */
+.screen-only {
+  display: revert;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

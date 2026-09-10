@@ -1,0 +1,160 @@
+.hero {
+  padding: 8px 0 44px;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 40px;
+  position: relative;
+}
+
+.hero-title {
+  font-size: clamp(2.4rem, 7vw, 4rem);
+  font-variation-settings: "SOFT" 40, "WONK" 1;
+  letter-spacing: -0.022em;
+  margin: 0 0 14px;
+  max-width: 22ch;
+}
+
+.hero-lede {
+  font-size: var(--text-md);
+  color: var(--ink-soft);
+  max-width: 46ch;
+  margin-bottom: 26px;
+}
+
+/* Latitude lines, as on the margin of a chart. */
+.hero-graticule {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 39px,
+    var(--rule) 39px 40px
+  );
+  mask-image: linear-gradient(to left, rgba(0, 0, 0, 0.5), transparent 55%);
+  -webkit-mask-image: linear-gradient(
+    to left,
+    rgba(0, 0, 0, 0.5),
+    transparent 55%
+  );
+}
+
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  position: relative;
+}
+
+.section-heading {
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 20px;
+}
+
+.pattern-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+}
+
+.pattern-card {
+  background: var(--paper-raised);
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+
+.pattern-card:hover {
+  border-color: var(--ocean-deep);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.pattern-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.pattern-name {
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: 600;
+  margin: 0 0 2px;
+}
+
+.pattern-date {
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+}
+
+/* A ring rather than a bar: it reads as a dial at a glance and takes no width. */
+.progress-ring {
+  flex: none;
+  display: grid;
+  place-items: center;
+  position: relative;
+  width: 46px;
+  height: 46px;
+}
+
+.progress-ring svg {
+  transform: rotate(-90deg);
+}
+
+.progress-ring-track {
+  stroke: var(--paper-sunken);
+}
+
+.progress-ring-fill {
+  stroke: var(--ocean-deep);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.4s ease-out;
+}
+
+.progress-ring-label {
+  position: absolute;
+  font-size: 0.66rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.pattern-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+
+/* First visit: say what this is for, rather than showing nothing. */
+.empty-state {
+  border: 1px dashed var(--rule-strong);
+  border-radius: var(--radius-lg);
+  padding: 26px;
+  color: var(--ink-soft);
+  background: color-mix(in srgb, var(--paper-raised) 60%, transparent);
+}
+
+.empty-state p {
+  margin: 0;
+  max-width: 52ch;
+}

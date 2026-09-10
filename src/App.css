@@ -1,7 +1,10 @@
 #root {
-  background-color: rgb(20, 20, 20);
-  max-width: 1280px;
+  min-height: 100vh;
+}
+
+/* The sheet the whole app is laid out on. */
+.page {
+  max-width: var(--page-max);
   margin: 0 auto;
-  padding: 0rem;
-  text-align: center;
+  padding: 0 clamp(16px, 4vw, 40px) 64px;
 }

@@ -9,131 +9,70 @@ import {
   percentComplete,
   renamePattern,
 } from "../helpers/pattern-storage";
-
-const buttonStyle = {
-  backgroundColor: "#3f51b5",
-  color: "white",
-  padding: "5px 10px",
-  border: "none",
-  borderRadius: "4px",
-  cursor: "pointer",
-  marginRight: "5px",
-  marginTop: "5px",
-};
-
-const deleteButtonStyle = {
-  ...buttonStyle,
-  backgroundColor: "#f44336",
-};
+import PageLayout from "./ui/PageLayout";
+import Button from "./ui/Button";
+import Dialog from "./ui/Dialog";
+import NameDialog from "./ui/NameDialog";
+import ProgressRing from "./ProgressRing";
+import "./Home.css";
 
 const formatSavedAt = (savedAt: string) =>
   new Date(savedAt).toLocaleDateString(undefined, {
-    weekday: "long",
     year: "numeric",
     month: "long",
     day: "numeric",
     hour: "numeric",
     minute: "numeric",
-    hour12: true,
   });
 
-const PreviousPatterns: React.FC<{ patterns: SavedPattern[] }> = ({
-  patterns,
-}) => {
+const PatternCard: React.FC<{
+  pattern: SavedPattern;
+  onRename: () => void;
+  onDelete: () => void;
+}> = ({ pattern, onRename, onDelete }) => {
   const navigate = useNavigate();
-
-  if (patterns.length === 0) {
-    return null;
-  }
+  const id = bareIdFor(pattern.id);
+  const percent = percentComplete(pattern);
+  const started = percent > 0;
 
   return (
-    <div style={{ marginTop: "40px" }}>
-      <h2 style={{ fontSize: "2rem", marginBottom: "20px" }}>
-        Previous Patterns
-      </h2>
-      <ul style={{ listStyleType: "none", padding: 0 }}>
-        {patterns.map((pattern) => {
-          const id = bareIdFor(pattern.id);
-          return (
-            <li
-              key={pattern.id}
-              style={{
-                marginBottom: "10px",
-                borderBottom: "1px solid white",
-                paddingBottom: "10px",
-              }}
-            >
-              <h3
-                style={{
-                  fontSize: "1.5rem",
-                  marginBottom: "0px",
-                  marginTop: "0px",
-                  display: "inline-block",
-                }}
-              >
-                {pattern.name ?? "Saved Pattern"}
-              </h3>
-              <div>Saved on {formatSavedAt(pattern.savedAt)}</div>
-              <button
-                style={buttonStyle}
-                onClick={() => navigate(`/pattern/${id}`)}
-              >
-                View Pattern
-              </button>
-              <button
-                style={buttonStyle}
-                onClick={() => navigate(`/render/${id}`)}
-              >
-                Visualise Hat
-              </button>
-              <button
-                style={buttonStyle}
-                onClick={() => {
-                  const newName = prompt(
-                    "Enter new name for the pattern:",
-                    pattern.name ?? "Saved Pattern"
-                  );
-                  // prompt() returns null when cancelled. Treat that as "leave
-                  // it alone" rather than as a new, empty name.
-                  if (newName === null || newName === pattern.name) {
-                    return;
-                  }
-                  renamePattern(pattern.id, newName);
-                }}
-              >
-                Rename
-              </button>
-              <button
-                style={deleteButtonStyle}
-                onClick={() => {
-                  if (
-                    window.confirm(
-                      "Are you sure you want to delete this pattern?"
-                    )
-                  ) {
-                    deletePattern(pattern.id);
-                  }
-                }}
-              >
-                Delete
-              </button>
-              <div style={{ marginTop: "5px", fontStyle: "italic" }}>
-                {percentComplete(pattern).toFixed(2)}% completed
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+    <li className="pattern-card">
+      <div className="pattern-card-head">
+        <div>
+          <h3 className="pattern-name">{pattern.name ?? "Saved Pattern"}</h3>
+          <div className="pattern-date">{formatSavedAt(pattern.savedAt)}</div>
+        </div>
+        <ProgressRing
+          percent={percent}
+          label={`${percent.toFixed(0)}% knitted`}
+        />
+      </div>
+      <div className="pattern-card-actions">
+        <Button variant="primary" onClick={() => navigate(`/pattern/${id}`)}>
+          {started ? "Keep knitting" : "Start knitting"}
+        </Button>
+        <Button variant="secondary" onClick={() => navigate(`/render/${id}`)}>
+          See the hat
+        </Button>
+        <Button variant="quiet" onClick={onRename}>
+          Rename
+        </Button>
+        <Button variant="quiet" onClick={onDelete}>
+          Delete
+        </Button>
+      </div>
+    </li>
   );
 };
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
   // Lazy initialiser: reading localStorage on every render is wasted work.
-  const [savedPatterns, setSavedPatterns] = useState<SavedPattern[]>(
-    () => listPatterns()
+  const [savedPatterns, setSavedPatterns] = useState<SavedPattern[]>(() =>
+    listPatterns()
   );
+  const [renaming, setRenaming] = useState<SavedPattern | null>(null);
+  const [deleting, setDeleting] = useState<SavedPattern | null>(null);
 
   const refresh = useCallback(() => setSavedPatterns(listPatterns()), []);
 
@@ -149,29 +88,92 @@ const Home: React.FC = () => {
   }, [refresh]);
 
   return (
-    <div style={{ textAlign: "left", padding: "20px" }}>
-      <h1 style={{ fontSize: "2.5rem", marginBottom: "20px" }}>
-        Hats Which Look Like Earth
-      </h1>
-      <p style={{ fontSize: "1rem", marginBottom: "20px" }}>
-        Knit a hat which looks like Earth. Begin by designing your hat, then
-        render it, and finally generate the pattern.
-      </p>
-      <button
-        style={{
-          backgroundColor: "#3f51b5",
-          color: "white",
-          padding: "10px 20px",
-          border: "none",
-          borderRadius: "4px",
-          cursor: "pointer",
+    <PageLayout
+      title="Hats Which Look Like Earth"
+      showTitle={false}
+      aside={
+        <span
+          style={{
+            fontSize: "var(--text-xs)",
+            color: "var(--ink-faint)",
+            letterSpacing: "0.09em",
+            textTransform: "uppercase",
+          }}
+        >
+          Knit the planet
+        </span>
+      }
+    >
+      {/* The masthead already carries the site name, so the hero is the pitch. */}
+      <section className="hero">
+        <div className="hero-graticule" aria-hidden="true" />
+        <h1 className="hero-title">Knit the whole planet onto your head.</h1>
+        <p className="hero-lede">
+          Choose a point on Earth and how big your head is. The hat is knitted
+          in a simulation, settles under its own weight, and every stitch takes
+          the colour of whatever it lands on. You get a chart you can knit
+          from.
+        </p>
+        <div className="hero-actions">
+          <Button variant="primary" size="lg" onClick={() => navigate("/design")}>
+            Begin
+          </Button>
+        </div>
+      </section>
+
+      <section>
+        <h2 className="section-heading">Your hats</h2>
+        {savedPatterns.length === 0 ? (
+          <div className="empty-state">
+            <p>
+              Nothing saved yet. Patterns you save live in this browser, on this
+              device, so they will be here when you come back, but they do not
+              travel with you.
+            </p>
+          </div>
+        ) : (
+          <ul className="pattern-list">
+            {savedPatterns.map((pattern) => (
+              <PatternCard
+                key={pattern.id}
+                pattern={pattern}
+                onRename={() => setRenaming(pattern)}
+                onDelete={() => setDeleting(pattern)}
+              />
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <NameDialog
+        open={renaming !== null}
+        title="Rename this pattern"
+        initialValue={renaming?.name ?? "Saved Pattern"}
+        onConfirm={(name) => {
+          if (renaming) renamePattern(renaming.id, name);
+          setRenaming(null);
         }}
-        onClick={() => navigate("/design")}
-      >
-        Begin
-      </button>
-      <PreviousPatterns patterns={savedPatterns} />
-    </div>
+        onCancel={() => setRenaming(null)}
+      />
+
+      <Dialog
+        open={deleting !== null}
+        title="Delete this pattern?"
+        text={
+          <>
+            {deleting?.name ?? "This pattern"} will be gone for good. Saved
+            patterns are only in this browser, so there is no copy elsewhere.
+          </>
+        }
+        confirmLabel="Delete"
+        confirmVariant="danger"
+        onConfirm={() => {
+          if (deleting) deletePattern(deleting.id);
+          setDeleting(null);
+        }}
+        onCancel={() => setDeleting(null)}
+      />
+    </PageLayout>
   );
 };
 
