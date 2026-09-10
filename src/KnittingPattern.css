@@ -1,0 +1,72 @@
+/*
+ * Screen and paper want quite different things from the chart. On screen it is
+ * a fixed-cell grid that scrolls sideways; on paper it needs to fit the page,
+ * so printing uses the SVG chart instead, scaled to the sheet.
+ */
+
+.print-only {
+  display: none;
+}
+
+@media print {
+  /* Landscape: charts are far wider than they are tall. */
+  @page {
+    size: landscape;
+    margin: 10mm;
+  }
+
+  .screen-only {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block;
+  }
+
+  .print-sheet {
+    color: #000;
+    background: #fff;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+  }
+
+  .print-sheet h1 {
+    font-size: 16pt;
+    margin: 0 0 2mm;
+  }
+
+  .print-sheet .print-meta {
+    font-size: 9pt;
+    margin: 0 0 4mm;
+    color: #333;
+  }
+
+  /* Scale the chart to the page rather than clipping it. */
+  .print-sheet svg {
+    width: 100%;
+    height: auto;
+    /* Never split a chart across pages: it is unreadable in two halves. */
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .print-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4mm;
+    margin-top: 4mm;
+    font-size: 9pt;
+  }
+
+  .print-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 1.5mm;
+  }
+
+  .print-legend-swatch {
+    width: 4mm;
+    height: 4mm;
+    border: 0.3mm solid #000;
+    display: inline-block;
+  }
+}

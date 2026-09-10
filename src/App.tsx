@@ -1,4 +1,5 @@
 import "./App.css";
+import "./KnittingPattern.css";
 import { HashRouter as Router, Route, Routes } from "react-router-dom";
 import { useState } from "react";
 import Home from "./components/Home";

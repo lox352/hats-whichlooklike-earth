@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { SavedPattern as Pattern } from "../types/SavedPattern";
 import KnittingPattern from "../KnittingPattern";
+import ChartActions from "./ChartActions";
+import ChartPrintSheet from "./ChartPrintSheet";
 import {
   patternsChangedEvent,
   percentComplete,
@@ -192,16 +194,29 @@ const SavedPattern: React.FC = () => {
 
   return (
     <div style={{ textAlign: "left", padding: "20px" }}>
-      <h1 style={{ fontSize: "2.5rem", marginBottom: "20px" }}>
+      <h1
+        className="screen-only"
+        style={{ fontSize: "2.5rem", marginBottom: "20px" }}
+      >
         {savedPattern.name ?? "Saved Pattern"}
       </h1>
 
-      <KnittingPattern
+      <div className="screen-only">
+        <KnittingPattern
+          stitches={savedPattern.stitches}
+          progress={savedPattern.progress}
+        />
+      </div>
+      <ChartPrintSheet
         stitches={savedPattern.stitches}
-        progress={savedPattern.progress}
+        title={savedPattern.name ?? "Saved Pattern"}
+      />
+      <ChartActions
+        stitches={savedPattern.stitches}
+        name={savedPattern.name ?? "saved-pattern"}
       />
       {!recordingProgress && (
-        <div style={{ textAlign: "right" }}>
+        <div className="screen-only" style={{ textAlign: "right" }}>
           <button
             style={{
               backgroundColor: "#f44336",

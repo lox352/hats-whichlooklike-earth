@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { Stitch } from "./types/Stitch";
 import { layOutStitches, StitchPosition } from "./helpers/pattern-layout";
+import "./KnittingPattern.css";
 
 interface KnittingPatternProps {
   stitches: Stitch[];

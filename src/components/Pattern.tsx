@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Stitch } from "../types/Stitch";
 import KnittingPattern from "../KnittingPattern";
+import ChartActions from "./ChartActions";
+import ChartPrintSheet from "./ChartPrintSheet";
 import { bareIdFor, createPattern } from "../helpers/pattern-storage";
 import { designFromSearchParams } from "../helpers/design-url";
 import { readDyedHat } from "../helpers/design-session";
@@ -73,9 +75,15 @@ const Pattern: React.FC<PatternProps> = ({ stitches }) => {
 
   return (
     <div style={{ textAlign: "left", padding: "20px" }}>
-      <h1 style={{ fontSize: "2.5rem", marginBottom: "20px" }}>Hat Pattern</h1>
-      <KnittingPattern stitches={charted} progress={0} />
-      <div style={{ textAlign: "right" }}>
+      <h1 className="screen-only" style={{ fontSize: "2.5rem", marginBottom: "20px" }}>
+        Hat Pattern
+      </h1>
+      <div className="screen-only">
+        <KnittingPattern stitches={charted} progress={0} />
+      </div>
+      <ChartPrintSheet stitches={charted} title="Hat Pattern" />
+      <ChartActions stitches={charted} name="hat-pattern" />
+      <div className="screen-only" style={{ textAlign: "right" }}>
         <button
           style={{
             ...buttonStyle,
