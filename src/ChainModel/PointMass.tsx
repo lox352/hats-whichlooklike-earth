@@ -3,6 +3,7 @@ import { Point } from "../types/Point";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import React, { useRef } from "react";
+import { settleDamping } from "../constants";
 
 const vertexShader = `
   varying vec2 vUv;
@@ -69,8 +70,8 @@ export default function PointMass({
       collisionGroups={0b0010} // Assign to a specific group
       type={fixed ? "fixed" : "dynamic"}
       position={[position.x, position.y, position.z]}
-      linearDamping={0.8}
-      angularDamping={0.8}
+      linearDamping={settleDamping}
+      angularDamping={settleDamping}
     >
       <BallCollider args={[0.02]} />
       {visible && colourRef?.current && (

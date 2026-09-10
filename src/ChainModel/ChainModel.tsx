@@ -4,8 +4,13 @@ import { Canvas } from "@react-three/fiber";
 import { Physics } from "@react-three/rapier";
 import { OrbitControls } from "@react-three/drei";
 import StitchPhysics from "./StitchPhysics";
+import Settler from "./Settler";
 import * as THREE from "three";
-import { verticalStitchDistance } from "../constants";
+import {
+  settleTimeStep,
+  solverIterations,
+  verticalStitchDistance,
+} from "../constants";
 import { countCastOnStitches } from "../helpers/stitches";
 import {
   defaultOrientationParameters,
@@ -53,10 +58,15 @@ const ChainModel: React.FC<ChainModelProps> = ({
       />
       <Physics
         gravity={[0, 9.81, 0]}
-        timeStep="vary"
-        numSolverIterations={20}
-        paused={!simulationActive}
+        timeStep={settleTimeStep}
+        numSolverIterations={solverIterations}
+        /*
+         * Always paused: Settler drives the stepping, so the simulation does
+         * not depend on how fast this machine renders. See Settler.
+         */
+        paused
       >
+        <Settler active={simulationActive} />
         <StitchPhysics
           stitchesRef={stitchesRef}
           setStitches={setStitches}

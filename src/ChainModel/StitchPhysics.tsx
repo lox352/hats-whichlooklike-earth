@@ -5,7 +5,12 @@ import { RapierRigidBody } from "@react-three/rapier";
 import { Stitch } from "../types/Stitch";
 import { colourNodes } from "../helpers/node-colouring";
 import * as THREE from "three";
-import { adjacentStitchDistance, verticalStitchDistance } from "../constants";
+import {
+  adjacentStitchDistance,
+  minimumSettleFrames,
+  restMotionThreshold,
+  verticalStitchDistance,
+} from "../constants";
 import { useFrame } from "@react-three/fiber";
 import { OrientationParameters } from "../types/OrientationParameters";
 
@@ -111,9 +116,9 @@ const StitchPhysics: React.FC<StitchPhysicsProps> = ({
       totalMotion += motionChange;
     });
 
-    // Stop simulation if total motion is below a threshold
-    const threshold = 0.6 * stitchRefs.current.length;
-    if (totalMotion > threshold || frameNumber.current < 10) {
+    // Stop simulating once the hat has come to rest.
+    const threshold = restMotionThreshold * stitchRefs.current.length;
+    if (totalMotion > threshold || frameNumber.current < minimumSettleFrames) {
       return;
     }
 
