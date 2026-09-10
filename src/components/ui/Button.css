@@ -16,6 +16,13 @@
   transition: background-color 0.15s, border-color 0.15s, transform 0.08s;
 }
 
+/* A thumb-sized target on a touch screen; the mouse can have the tighter one. */
+@media (pointer: coarse) {
+  .btn {
+    min-height: 44px;
+  }
+}
+
 .btn:active:not(:disabled) {
   transform: translateY(1px);
 }
@@ -74,6 +81,16 @@
   text-decoration: underline;
   text-underline-offset: 2px;
   font-weight: 450;
+}
+
+/*
+ * It reads as a text link, but it is still a button you have to hit with a
+ * thumb, and `min-height: 0` above undoes the shared rule.
+ */
+@media (pointer: coarse) {
+  .btn-quiet {
+    min-height: 44px;
+  }
 }
 
 .btn-quiet:hover:not(:disabled) {

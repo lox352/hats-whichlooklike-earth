@@ -173,6 +173,17 @@
   padding: 6px 8px;
 }
 
+/*
+ * These are the smallest buttons in the app and they are on the screen you
+ * knit from, one hand on the needles. On a touch screen they get the full
+ * thumb-sized target; a mouse can keep the tighter row.
+ */
+@media (pointer: coarse) {
+  .knitting-secondary .knitting-button {
+    min-height: 44px;
+  }
+}
+
 .knitting-keys {
   display: none;
 }

@@ -1,5 +1,7 @@
 #root {
   min-height: 100vh;
+  /* dvh so a phone address bar does not make the page taller than the screen. */
+  min-height: 100dvh;
 }
 
 /* The sheet the whole app is laid out on. */

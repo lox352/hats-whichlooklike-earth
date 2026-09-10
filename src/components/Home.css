@@ -66,7 +66,12 @@
   margin: 0;
   display: grid;
   gap: 14px;
-  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  /*
+   * `min()` rather than a bare 310px: on a 320px phone the page padding
+   * leaves 288px, and a hard 310px minimum made the cards wider than the
+   * screen and gave the whole page a sideways scroll.
+   */
+  grid-template-columns: repeat(auto-fill, minmax(min(310px, 100%), 1fr));
 }
 
 .pattern-card {

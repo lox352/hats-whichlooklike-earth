@@ -1,9 +1,10 @@
 import { DecreaseMethod } from "./KnittingMachine";
 import { OrientationParameters } from "./OrientationParameters";
 import {
+  defaultDecreaseMethod,
   defaultNumberOfRows,
   defaultStitchesPerRow,
-} from "../constants";
+} from "../helpers/sizing";
 import { defaultOrientationParameters } from "./OrientationParameters";
 
 /**
@@ -23,6 +24,6 @@ export interface HatDesign {
 export const defaultHatDesign: HatDesign = {
   stitchesPerRow: defaultStitchesPerRow,
   numberOfRows: defaultNumberOfRows,
-  decreaseMethod: "Pyramidal",
+  decreaseMethod: defaultDecreaseMethod,
   orientation: defaultOrientationParameters,
 };

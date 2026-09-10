@@ -44,11 +44,11 @@ export const defaultHeadCircumference = 56;
  * before the crown starts" is a property of the pattern, not of anyone's head,
  * and was what this used to ask.
  *
- * 38cm suits a typical adult: a 56cm head is about 28cm over the top between
- * the ears, plus a few centimetres each side to cover them. That gives a 19cm
- * hat, in the usual 20-23cm band for an adult beanie once a brim is folded.
+ * 34cm suits a typical adult: a 56cm head is about 28cm over the top between
+ * the ears, plus about 3cm each side to cover them. That gives a 17cm hat,
+ * which is a beanie that sits on the ears rather than a slouchy one.
  */
-export const defaultOverTheTop = 38;
+export const defaultOverTheTop = 34;
 
 /** Finished height of the hat, brim edge to crown, from the arc over the head. */
 export const hatHeightFromArc = (overTheTop: number): number =>
@@ -183,3 +183,28 @@ export const headFittedBy = (
   stitchesPerRow: number,
   gauge: Gauge
 ): number => circumferenceFor(stitchesPerRow, gauge) / negativeEase;
+
+/** What a design starts as, before anyone has chosen otherwise. */
+export const defaultDecreaseMethod: DecreaseMethod = "Pyramidal";
+
+/*
+ * The numbers a fresh design page opens with.
+ *
+ * Worked out here, from the default head and gauge above, by the same
+ * functions the "work out my stitches" button calls. They used to be literals
+ * kept honest by a test, which meant a change to any default measurement left
+ * the stitch count describing a head nobody had asked for until someone
+ * noticed the test.
+ */
+export const defaultStitchesPerRow = stitchesPerRowFor(
+  defaultHeadCircumference,
+  defaultGauge,
+  defaultDecreaseMethod
+);
+
+export const defaultNumberOfRows = bodyRowsForHeight(
+  hatHeightFromArc(defaultOverTheTop),
+  defaultStitchesPerRow,
+  defaultGauge,
+  defaultDecreaseMethod
+);

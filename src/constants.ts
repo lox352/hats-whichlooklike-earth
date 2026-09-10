@@ -3,16 +3,6 @@ import { GlobalCoordinates } from "./types/GlobalCoordinates";
 const adjacentStitchDistance = 2;
 const verticalStitchDistance = 1.6;
 
-/*
- * These are what the default head, arc over the top and gauge in
- * helpers/sizing work out to, so "work out my stitches" on a fresh page
- * changes nothing. There is a test tying them together.
- *
- * numberOfRows counts only the straight body: the crown adds its own rows on
- * top, 18 more at this stitch count, for a finished hat of about 19cm.
- */
-const defaultStitchesPerRow = 120;
-const defaultNumberOfRows = 31;
 
 /**
  * Settle tuning.
@@ -76,12 +66,12 @@ const minimumSettleFrames = 10;
  *
  * The first quiet frame is not the end of the movement. The fabric is still
  * easing into shape when the motion drops below the threshold, so stopping
- * there froze it a moment early. Holding on for another second lets it finish:
- * measured, the hat settles a further half to seven tenths of a percent, so
- * this buys the look of a hat that has come to rest rather than a different
- * shape.
+ * there froze it a moment early. Holding on lets it finish: measured, the hat
+ * settles a further percent or so over these two seconds, which is the
+ * difference between a hat that looks stopped and one that looks caught
+ * mid-movement.
  */
-const settleRestSeconds = 1;
+const settleRestSeconds = 2;
 
 /**
  * How long the dye takes to sweep down the hat, in seconds.
@@ -108,8 +98,6 @@ const southPole: GlobalCoordinates = { latitude: -90, longitude: 180 };
 export {
   adjacentStitchDistance,
   verticalStitchDistance,
-  defaultStitchesPerRow,
-  defaultNumberOfRows,
   settleDamping,
   settleTimeStep,
   settleSubsteps,

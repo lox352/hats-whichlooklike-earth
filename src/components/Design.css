@@ -103,6 +103,12 @@
   color: var(--ink-faint);
 }
 
+@media (pointer: coarse) {
+  .advanced-toggle {
+    min-height: 44px;
+  }
+}
+
 .advanced-toggle:hover {
   color: var(--accent);
 }
@@ -225,4 +231,20 @@
   color: var(--ink-faint);
   margin: 0 0 12px;
   max-width: 60ch;
+}
+
+/*
+ * A checkbox and its label as one target. The box itself is only as big as a
+ * checkbox, so the row it sits in is what has to be thumb-sized.
+ */
+.design-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (pointer: coarse) {
+  .design-checkbox {
+    min-height: 44px;
+  }
 }

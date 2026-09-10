@@ -10,6 +10,9 @@ import {
   defaultOverTheTop,
   defaultGauge,
   defaultHeadCircumference,
+  defaultNumberOfRows,
+  defaultStitchesPerRow,
+  defaultDecreaseMethod,
   headFittedBy,
   isValidGauge,
   negativeEase,
@@ -17,10 +20,7 @@ import {
   stitchesPerRowFor,
 } from "./sizing";
 import { pyramidalBase, validateDesign } from "../types/KnittingMachine";
-import {
-  defaultNumberOfRows,
-  defaultStitchesPerRow,
-} from "../constants";
+
 import { getStitches } from "./stitches";
 import { indexRows } from "./knitting-progress";
 
@@ -138,26 +138,11 @@ describe("isValidGauge", () => {
  *
  * They did not: the page opened with 160 stitches, no realistic gauge produces
  * 160, and so pressing "work out my stitches" on an untouched page silently
- * rewrote it as 110.
+ * rewrote it as 110. That agreement is now structural - the defaults are
+ * computed by the same functions the button calls - so what is left to check
+ * is that the measurements they come from describe a real hat.
  */
 describe("defaults agree with each other", () => {
-  it("working out the stitches from the defaults changes nothing", () => {
-    const stitches = stitchesPerRowFor(
-      defaultHeadCircumference,
-      defaultGauge,
-      "Pyramidal"
-    );
-    expect(stitches).toBe(defaultStitchesPerRow);
-    expect(
-      bodyRowsForHeight(
-        hatHeightFromArc(defaultOverTheTop),
-        stitches,
-        defaultGauge,
-        "Pyramidal"
-      )
-    ).toBe(defaultNumberOfRows);
-  });
-
   it("the default gauge is a plausible hand-knitting gauge", () => {
     // Double-knit wool territory: roughly 20-26 stitches over 10cm.
     expect(defaultGauge.stitchesPer10cm).toBeGreaterThanOrEqual(18);
@@ -170,16 +155,20 @@ describe("defaults agree with each other", () => {
     const around = circumferenceFor(defaultStitchesPerRow, defaultGauge);
     expect(around).toBeGreaterThan(44);
     expect(around).toBeLessThan(60);
-    // Brim edge to crown, the way a beanie is specified. Adult patterns sit
-    // in the 18-24cm band.
+    /*
+     * Brim edge to crown, the way a beanie is specified. Adult patterns run
+     * from about 16cm for one that sits on the ears to 24cm for a slouchy
+     * one; the default arc puts it at the close-fitting end.
+     */
     const height = totalHeightFor(
       defaultStitchesPerRow,
       defaultNumberOfRows,
       defaultGauge,
-      "Pyramidal"
+      defaultDecreaseMethod
     );
-    expect(height).toBeGreaterThan(17);
-    expect(height).toBeLessThan(25);
+    expect(height).toBeGreaterThan(15.5);
+    expect(height).toBeLessThan(24);
+    expect(height).toBeCloseTo(hatHeightFromArc(defaultOverTheTop), 0);
   });
 
   it("the default stitch count is valid for both crown shapes", () => {
@@ -187,7 +176,11 @@ describe("defaults agree with each other", () => {
       validateDesign(defaultStitchesPerRow, defaultNumberOfRows, "Pyramidal")
     ).toEqual([]);
     expect(
-      validateDesign(defaultStitchesPerRow, defaultNumberOfRows, "Hemispherical")
+      validateDesign(
+        defaultStitchesPerRow,
+        defaultNumberOfRows,
+        "Hemispherical"
+      )
     ).toEqual([]);
   });
 });

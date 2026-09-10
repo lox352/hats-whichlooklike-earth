@@ -266,9 +266,7 @@ const Design: React.FC = () => {
           </div>
         </div>
 
-        <label
-          style={{ display: "flex", alignItems: "center", gap: "8px" }}
-        >
+        <label className="design-checkbox">
           <input
             type="checkbox"
             checked={design.orientation.displayNewZealand}

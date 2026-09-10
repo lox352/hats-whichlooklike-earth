@@ -18,6 +18,20 @@
   text-decoration: none;
 }
 
+/*
+ * The title is also the way home, so on a touch screen it needs a target you
+ * can hit. The negative margin gives back the space the min-height takes, so
+ * the header stays the height it looks.
+ */
+@media (pointer: coarse) {
+  .masthead-title {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin: -10px 0;
+  }
+}
+
 .masthead-title:hover {
   color: var(--accent);
 }

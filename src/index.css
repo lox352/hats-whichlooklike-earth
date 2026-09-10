@@ -1,3 +1,9 @@
+html {
+  /* Stop mobile Safari inflating text of its own accord when you rotate. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 /* ============================================================
    Hats Which Look Like Earth — cartographic atlas
    ------------------------------------------------------------
@@ -145,6 +151,7 @@ body {
    */
   min-width: 320px;
   min-height: 100vh;
+  min-height: 100dvh;
   color: var(--ink);
   background-color: var(--paper);
   /*
@@ -250,6 +257,57 @@ label {
 
 button {
   font: inherit;
+}
+
+/*
+ * Touch behaviour.
+ *
+ * Two things a phone browser does by default that this app never wants, both
+ * of which read as the page zooming at random.
+ *
+ * Focusing a field whose text is under 16px makes mobile Safari zoom in, and
+ * it does not zoom back out afterwards. So on a touch screen the fields are
+ * 16px, while a mouse-driven screen keeps the smaller size the rest of the
+ * type scale is built around.
+ *
+ * Double-tapping a control zooms too, which shows up most on the knitting
+ * panel, where counting a row means tapping the same button again and again.
+ * `manipulation` drops the double-tap gesture on controls and leaves panning
+ * and pinching alone, so zooming on purpose still works everywhere.
+ */
+a,
+button,
+label,
+summary,
+input,
+select,
+[role="button"] {
+  touch-action: manipulation;
+}
+
+/*
+ * Tapping a button should not start selecting its label, or raise the
+ * press-and-hold callout over it.
+ */
+button,
+[role="button"] {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+@media (pointer: coarse) {
+  input[type="number"],
+  input[type="text"],
+  select {
+    font-size: max(1rem, 16px);
+  }
+
+  /* Big enough to hit with a thumb without aiming. */
+  input[type="checkbox"] {
+    width: 24px;
+    height: 24px;
+  }
 }
 
 hr {
