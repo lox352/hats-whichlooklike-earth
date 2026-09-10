@@ -1,6 +1,14 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SavedPattern } from "../types/SavedPattern";
+import {
+  bareIdFor,
+  deletePattern,
+  listPatterns,
+  patternsChangedEvent,
+  percentComplete,
+  renamePattern,
+} from "../helpers/pattern-storage";
 
 const buttonStyle = {
   backgroundColor: "#3f51b5",
@@ -18,6 +26,17 @@ const deleteButtonStyle = {
   backgroundColor: "#f44336",
 };
 
+const formatSavedAt = (savedAt: string) =>
+  new Date(savedAt).toLocaleDateString(undefined, {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    hour12: true,
+  });
+
 const PreviousPatterns: React.FC<{ patterns: SavedPattern[] }> = ({
   patterns,
 }) => {
@@ -26,7 +45,7 @@ const PreviousPatterns: React.FC<{ patterns: SavedPattern[] }> = ({
   if (patterns.length === 0) {
     return null;
   }
-  
+
   return (
     <div style={{ marginTop: "40px" }}>
       <h2 style={{ fontSize: "2rem", marginBottom: "20px" }}>
@@ -34,10 +53,10 @@ const PreviousPatterns: React.FC<{ patterns: SavedPattern[] }> = ({
       </h2>
       <ul style={{ listStyleType: "none", padding: 0 }}>
         {patterns.map((pattern) => {
-          const id = pattern.id.replace("pattern-", "");
+          const id = bareIdFor(pattern.id);
           return (
             <li
-              key={id}
+              key={pattern.id}
               style={{
                 marginBottom: "10px",
                 borderBottom: "1px solid white",
@@ -54,18 +73,7 @@ const PreviousPatterns: React.FC<{ patterns: SavedPattern[] }> = ({
               >
                 {pattern.name ?? "Saved Pattern"}
               </h3>
-              <div>
-                Saved on{" "}
-                {new Date(parseInt(id)).toLocaleDateString(undefined, {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                  hour: "numeric",
-                  minute: "numeric",
-                  hour12: true,
-                })}
-              </div>
+              <div>Saved on {formatSavedAt(pattern.savedAt)}</div>
               <button
                 style={buttonStyle}
                 onClick={() => navigate(`/pattern/${id}`)}
@@ -73,26 +81,24 @@ const PreviousPatterns: React.FC<{ patterns: SavedPattern[] }> = ({
                 View Pattern
               </button>
               <button
-                style={{ ...buttonStyle }}
+                style={buttonStyle}
                 onClick={() => navigate(`/render/${id}`)}
               >
                 Visualise Hat
               </button>
               <button
-                style={{ ...buttonStyle }}
+                style={buttonStyle}
                 onClick={() => {
                   const newName = prompt(
                     "Enter new name for the pattern:",
                     pattern.name ?? "Saved Pattern"
                   );
-                  if (newName !== pattern.name) {
-                    const updatedPattern = { ...pattern, name: newName };
-                    localStorage.setItem(
-                      pattern.id,
-                      JSON.stringify(updatedPattern)
-                    );
-                    window.dispatchEvent(new CustomEvent("storageUpdated"));
+                  // prompt() returns null when cancelled. Treat that as "leave
+                  // it alone" rather than as a new, empty name.
+                  if (newName === null || newName === pattern.name) {
+                    return;
                   }
+                  renamePattern(pattern.id, newName);
                 }}
               >
                 Rename
@@ -105,18 +111,14 @@ const PreviousPatterns: React.FC<{ patterns: SavedPattern[] }> = ({
                       "Are you sure you want to delete this pattern?"
                     )
                   ) {
-                    localStorage.removeItem(`pattern-${id}`);
-                    window.dispatchEvent(new CustomEvent("storageUpdated"));
+                    deletePattern(pattern.id);
                   }
                 }}
               >
                 Delete
               </button>
               <div style={{ marginTop: "5px", fontStyle: "italic" }}>
-                {((100 * pattern.progress) / pattern.stitches.length).toFixed(
-                  2
-                )}
-                % completed
+                {percentComplete(pattern).toFixed(2)}% completed
               </div>
             </li>
           );
@@ -126,34 +128,25 @@ const PreviousPatterns: React.FC<{ patterns: SavedPattern[] }> = ({
   );
 };
 
-const getSavedPatterns = (): SavedPattern[] => {
-  return Object.keys(localStorage)
-    .filter((key) => key.startsWith("pattern-"))
-    .map((key) => localStorage.getItem(key)!)
-    .map((item) => JSON.parse(item) as SavedPattern);
-};
-
 const Home: React.FC = () => {
   const navigate = useNavigate();
-  const [savedPatterns, setSavedPatterns] = React.useState<SavedPattern[]>(
-    getSavedPatterns()
+  // Lazy initialiser: reading localStorage on every render is wasted work.
+  const [savedPatterns, setSavedPatterns] = useState<SavedPattern[]>(
+    () => listPatterns()
   );
 
-  const handleBegin = () => {
-    navigate("/design");
-  };
+  const refresh = useCallback(() => setSavedPatterns(listPatterns()), []);
 
   useEffect(() => {
-    const handleStorageChange = () => {
-      setSavedPatterns(getSavedPatterns());
-    };
-
-    window.addEventListener("storageUpdated", handleStorageChange);
+    window.addEventListener(patternsChangedEvent, refresh);
+    // `storage` fires when another tab writes, which the custom event misses.
+    window.addEventListener("storage", refresh);
 
     return () => {
-      window.removeEventListener("storageUpdated", handleStorageChange);
+      window.removeEventListener(patternsChangedEvent, refresh);
+      window.removeEventListener("storage", refresh);
     };
-  }, []);
+  }, [refresh]);
 
   return (
     <div style={{ textAlign: "left", padding: "20px" }}>
@@ -173,7 +166,7 @@ const Home: React.FC = () => {
           borderRadius: "4px",
           cursor: "pointer",
         }}
-        onClick={handleBegin}
+        onClick={() => navigate("/design")}
       >
         Begin
       </button>

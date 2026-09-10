@@ -1,46 +1,48 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Stitch } from "../types/Stitch";
 import KnittingPattern from "../KnittingPattern";
-import { SavedPattern } from "../types/SavedPattern";
+import { bareIdFor, createPattern } from "../helpers/pattern-storage";
 
 interface PatternProps {
   stitches: Stitch[];
 }
 
 const Pattern: React.FC<PatternProps> = ({ stitches }) => {
+  const navigate = useNavigate();
   const [patternSaved, setPatternSaved] = React.useState(false);
+
+  // Reaching /pattern without stitches (a refresh, or a pasted link) would
+  // otherwise render a grid with -Infinity rows.
+  React.useEffect(() => {
+    if (stitches.length === 0) {
+      navigate("/", { replace: true });
+    }
+  }, [stitches, navigate]);
+
+  if (stitches.length === 0) {
+    return null;
+  }
+
   const saveToLocalStorage = () => {
     const patternName = prompt("Please enter a name for your pattern:");
     if (patternName === null) {
       return;
     }
 
-    const patternId = Date.now().toString();
-    const storageKey = `pattern-${patternId}`;
-    const savedPattern: SavedPattern = {
-      id: storageKey,
-      name: patternName ?? undefined,
-      savedAt: new Date(),
-      stitches,
-      progress: 0,
-    };
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(savedPattern));
-    } catch (e) {
-      if (e instanceof DOMException && e.name === "QuotaExceededError") {
-        alert(
-          "Local storage is full. Please delete a pattern from the home page and try again."
-        );
-        return;
-      } else {
-        throw e;
-      }
+    const { result, pattern } = createPattern(stitches, patternName);
+    if (!result.ok) {
+      alert(
+        "Local storage is full. Please delete a pattern from the home page and try again."
+      );
+      return;
     }
-    window.location.hash = `#/pattern/${patternId}`;
+
     setPatternSaved(true);
     alert(
       "Stitches saved to local storage! This pattern may be accessed at any time from the homepage."
     );
+    navigate(`/pattern/${bareIdFor(pattern.id)}`);
   };
 
   return (
@@ -59,9 +61,7 @@ const Pattern: React.FC<PatternProps> = ({ stitches }) => {
             borderRadius: "4px",
             cursor: "pointer",
           }}
-          onClick={() => {
-            window.location.hash = "#/";
-          }}
+          onClick={() => navigate("/")}
         >
           Start Again
         </button>

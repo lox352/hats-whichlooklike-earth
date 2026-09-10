@@ -1,27 +1,37 @@
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { SavedPattern as Pattern } from "../types/SavedPattern";
 import ChainModel from "../ChainModel/ChainModel";
+import { readPattern } from "../helpers/pattern-storage";
 
 const SavedRender: React.FC = () => {
   const navigate = useNavigate();
-  const [anyStichRendered, setAnyStitchRendered] = React.useState(false);
-  const [loadingPattern, setLoadingPattern] = React.useState(false);
+  const { patternId } = useParams();
+  const [anyStitchRendered, setAnyStitchRendered] = React.useState(false);
 
-  const params = useParams();
-  const patternId = params.patternId;
-  if (!patternId) {
-    return "Could not find pattern";
-  }
-  const patternJson = localStorage.getItem(`pattern-${patternId}`);
-  if (!patternJson) {
-    return "Could not find pattern";
-  }
-  const pattern: Pattern = JSON.parse(patternJson);
+  // Read once per id rather than on every render.
+  const pattern = React.useMemo(() => readPattern(patternId), [patternId]);
 
-  const thereAreStitches = pattern.stitches.length > 0;
-  if (!thereAreStitches) {
-    return null;
+  if (!pattern || pattern.stitches.length === 0) {
+    return (
+      <div style={{ textAlign: "left", padding: "20px" }}>
+        <h1 style={{ fontSize: "2.5rem", marginBottom: "20px" }}>
+          Pattern not found
+        </h1>
+        <button
+          style={{
+            backgroundColor: "#3f51b5",
+            color: "white",
+            padding: "10px 20px",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+          onClick={() => navigate("/")}
+        >
+          Back to Homepage
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -31,32 +41,27 @@ const SavedRender: React.FC = () => {
         <ChainModel
           stitches={pattern.stitches}
           simulationActive={false}
-          onAnyStitchRendered={() => {
-            setAnyStitchRendered(true);
-          }}
+          onAnyStitchRendered={() => setAnyStitchRendered(true)}
         />
       </div>
-      <i>
-        {!anyStichRendered
+      <p aria-live="polite" style={{ fontStyle: "italic" }}>
+        {!anyStitchRendered
           ? "Summoning stitches..."
           : "Pinch and zoom to see the pattern in more detail"}
-      </i>
+      </p>
       <div style={{ marginTop: "10px" }}>
         <button
           style={{
-        backgroundColor: "#3f51b5",
-        color: "white",
-        padding: "10px 20px",
-        border: "none",
-        borderRadius: "4px",
-        cursor: "pointer",
+            backgroundColor: "#3f51b5",
+            color: "white",
+            padding: "10px 20px",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
           }}
-          onClick={() => {
-        setLoadingPattern(true);
-        navigate(`/pattern/${patternId}`);
-          }}
+          onClick={() => navigate(`/pattern/${patternId}`)}
         >
-          {loadingPattern ? "Pattern loading..." : "Go to Pattern"}
+          Go to Pattern
         </button>
       </div>
     </div>
