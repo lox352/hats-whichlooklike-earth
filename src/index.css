@@ -24,7 +24,12 @@ a:hover {
 
 body {
   margin: 0;
-  place-items: center;
+  /*
+   * No `place-items` here. It is a leftover from the Vite template, where it
+   * paired with `display: flex`. On a block container, `justify-items: center`
+   * sets `justify-self: center` on the children, which shrink-wraps #root to
+   * its content: the whole app was rendering in a ~300px column.
+   */
   min-width: 320px;
   min-height: 100vh;
   background-color: rgb(20, 20, 20);
