@@ -191,11 +191,18 @@
  * the buttons you actually came for.
  */
 .chart-extras {
-  margin-top: 34px;
-  padding-top: 18px;
+  margin-top: 18px;
+  padding-top: 14px;
   border-top: 1px solid var(--rule);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   align-items: flex-start;
+}
+
+@media (min-width: 620px) {
+  .chart-extras {
+    margin-top: 30px;
+    padding-top: 18px;
+  }
 }

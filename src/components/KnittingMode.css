@@ -1,57 +1,92 @@
+/*
+ * The panel you use while actually knitting, designed for a phone first.
+ *
+ * It previously carried the old near-black background regardless of theme, and
+ * its buttons took up more than half a phone screen. The chart is the thing
+ * you need to see; this should take as little room as it can while still
+ * having targets you can hit without looking.
+ */
 .knitting-panel {
   position: sticky;
   bottom: 0;
-  background: linear-gradient(to top, rgb(20, 20, 20) 70%, rgba(20, 20, 20, 0.92));
-  border-top: 1px solid #333;
-  padding: 14px 0 10px;
-  margin-top: 10px;
+  z-index: 10;
+  padding: 10px 0 12px;
+  border-top: 1px solid var(--rule-strong);
+  /* Fades the chart out behind the panel rather than cutting it off. */
+  background: linear-gradient(
+    to top,
+    var(--paper) 0%,
+    var(--paper) 72%,
+    color-mix(in srgb, var(--paper) 82%, transparent) 100%
+  );
 }
 
+.knitting-progress-bar {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--paper-sunken);
+  border: 1px solid var(--paper-edge);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.knitting-progress-fill {
+  height: 100%;
+  background: linear-gradient(to right, var(--land-deep), var(--ocean-deep));
+  transition: width 0.25s ease-out;
+}
+
+/* Where you are, on one line. */
 .knitting-where {
   display: flex;
-  gap: 18px;
   flex-wrap: wrap;
   align-items: baseline;
+  gap: 4px 14px;
+  font-size: var(--text-sm);
   font-variant-numeric: tabular-nums;
-  margin-bottom: 12px;
+  color: var(--ink-soft);
+  margin-bottom: 10px;
 }
 
-.knitting-where strong {
-  font-size: 1.45rem;
-  font-weight: 600;
+.knitting-where b {
+  color: var(--ink);
+  font-weight: 650;
+  font-size: var(--text-md);
 }
 
 .knitting-where .knitting-label {
-  opacity: 0.6;
-  font-size: 0.8rem;
+  color: var(--ink-faint);
+  font-size: var(--text-xs);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-right: 6px;
+  letter-spacing: 0.07em;
+  margin-right: 5px;
 }
 
-/* The run to knit next: the one instruction that matters in colourwork. */
+/* The instruction that matters: how many of which colour. */
 .knitting-run {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 6px;
 }
 
 .knitting-swatch {
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  border: 1px solid var(--rule-strong);
   flex: none;
 }
 
 .knitting-run-text {
-  font-size: 1.1rem;
+  font-size: var(--text-base);
+  color: var(--ink);
+  line-height: 1.25;
 }
 
-.knitting-run-text strong {
-  font-size: 1.5rem;
+.knitting-run-text b {
+  font-size: var(--text-lg);
+  font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
 
@@ -59,89 +94,144 @@
   display: flex;
   gap: 10px;
   align-items: center;
-  font-size: 0.85rem;
-  opacity: 0.75;
   flex-wrap: wrap;
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  margin-bottom: 12px;
 }
 
 .knitting-upcoming-swatch {
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  border: 1px solid var(--rule-strong);
   display: inline-block;
   vertical-align: -1px;
   margin-right: 4px;
 }
 
-.knitting-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  align-items: stretch;
+/* The two things you actually do. */
+.knitting-primary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .knitting-button {
-  border: 1px solid #3a3a3a;
-  background: #262626;
-  color: white;
-  border-radius: 8px;
+  border: 1px solid var(--rule-strong);
+  background: var(--paper-raised);
+  color: var(--ink);
+  border-radius: var(--radius);
   cursor: pointer;
   font: inherit;
-  padding: 10px 14px;
-}
-
-.knitting-button:hover:not(:disabled) {
-  border-color: #6c7ae0;
+  font-size: var(--text-sm);
+  padding: 8px 10px;
+  min-height: 40px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  line-height: 1.15;
 }
 
 .knitting-button:disabled {
-  opacity: 0.4;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
-/* One large target, because this is 95% of what you press. */
-.knitting-button-primary {
-  flex: 1 1 190px;
-  min-height: 62px;
-  font-size: 1.15rem;
+.knitting-button-primary,
+.knitting-button-run {
+  min-height: 52px;
+  font-size: var(--text-base);
   font-weight: 600;
-  background: #2f6f4f;
-  border-color: #2f6f4f;
+  color: var(--paper-raised);
+}
+
+.knitting-button-primary {
+  background: var(--land-deep);
+  border-color: var(--land-deep);
 }
 
 .knitting-button-run {
-  flex: 1 1 190px;
-  min-height: 62px;
-  font-size: 1rem;
-  font-weight: 600;
-  background: #3f51b5;
-  border-color: #3f51b5;
+  background: var(--ocean-deep);
+  border-color: var(--ocean-deep);
 }
 
-.knitting-progress-bar {
-  height: 6px;
-  border-radius: 3px;
-  background: #2a2a2a;
-  overflow: hidden;
-  margin-bottom: 12px;
+/* Everything else, small and out of the way. */
+.knitting-secondary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
-.knitting-progress-fill {
-  height: 100%;
-  background: linear-gradient(to right, #2f6f4f, #6c7ae0);
-  transition: width 0.25s ease-out;
+.knitting-secondary .knitting-button {
+  flex: 1 1 auto;
+  min-height: 36px;
+  font-size: var(--text-xs);
+  padding: 6px 8px;
+}
+
+.knitting-keys {
+  display: none;
 }
 
 .knitting-hint {
-  font-size: 0.8rem;
-  opacity: 0.55;
-  margin-top: 10px;
+  display: none;
 }
 
 .knitting-finished {
-  font-size: 1.1rem;
-  padding: 10px 0;
+  font-size: var(--text-base);
+  color: var(--ink);
+  padding: 4px 0 12px;
+  margin: 0;
+}
+
+/*
+ * Keyboard affordances only where there is a keyboard. On a phone the shortcut
+ * labels are noise, and they were taking a line of their own inside every
+ * button.
+ */
+@media (any-hover: hover) and (any-pointer: fine) {
+  .knitting-keys {
+    display: block;
+    font-size: var(--text-xs);
+    opacity: 0.75;
+    font-weight: 400;
+  }
+
+  .knitting-hint {
+    display: block;
+    font-size: var(--text-xs);
+    color: var(--ink-faint);
+    margin: 10px 0 0;
+  }
+
+  .knitting-button:hover:not(:disabled) {
+    border-color: var(--ocean-deep);
+  }
+}
+
+/* Roomier once there is room. */
+@media (min-width: 620px) {
+  .knitting-panel {
+    padding: 14px 0 14px;
+  }
+
+  .knitting-primary {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    max-width: 460px;
+  }
+
+  .knitting-secondary {
+    gap: 8px;
+  }
+
+  .knitting-secondary .knitting-button {
+    flex: 0 0 auto;
+    min-width: 92px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -193,3 +193,36 @@
   font-size: var(--text-sm);
   color: var(--ink-faint);
 }
+
+/*
+ * The two kinds of measurement are separated: what the hat should be, and what
+ * your knitting does. They used to sit in one row, which made it unclear which
+ * was which.
+ */
+.size-group {
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.size-group:last-of-type {
+  border-bottom: none;
+  padding-bottom: 6px;
+}
+
+.size-group-title {
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 6px;
+}
+
+.size-group-note {
+  font-size: var(--text-sm);
+  color: var(--ink-faint);
+  margin: 0 0 12px;
+  max-width: 60ch;
+}

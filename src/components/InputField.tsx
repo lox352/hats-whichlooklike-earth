@@ -1,4 +1,5 @@
 import React from "react";
+import NumberField from "./ui/NumberField";
 
 interface InputFieldProps {
   label: string;
@@ -22,19 +23,15 @@ const InputField: React.FC<InputFieldProps> = ({
   step,
 }) => (
   <div className="design-field">
-    <label>
-      <span className="design-field-label">{label}</span>
-      <input
-        type="number"
-        value={value === 0 ? "" : value}
-        min={min}
-        max={max}
-        step={step}
-        onChange={(e) => valueSetter(Number(e.target.value))}
-        aria-invalid={problem ? true : undefined}
-        className={problem ? "design-invalid" : undefined}
-      />
-    </label>
+    <NumberField
+      label={label}
+      value={value}
+      onChange={valueSetter}
+      min={min}
+      max={max}
+      step={step}
+      invalid={!!problem}
+    />
     {hint && !problem && <div className="design-hint">{hint}</div>}
     {problem && (
       <div role="alert" className="design-problem">

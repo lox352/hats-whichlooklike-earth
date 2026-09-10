@@ -140,30 +140,21 @@ const KnittingMode: React.FC<KnittingModeProps> = ({
         />
       </div>
 
+      {/* Row, stitch and what is left, on one line rather than three blocks. */}
       <div className="knitting-where">
         <span>
           <span className="knitting-label">Row</span>
-          <strong>
-            {position.row}
-            <span style={{ opacity: 0.5, fontSize: "1rem" }}>
-              {" "}
-              / {position.totalRows}
-            </span>
-          </strong>
+          <b>{position.row}</b>
+          <span> / {position.totalRows}</span>
         </span>
         <span>
           <span className="knitting-label">Stitch</span>
-          <strong>
-            {position.stitchInRow}
-            <span style={{ opacity: 0.5, fontSize: "1rem" }}>
-              {" "}
-              / {position.stitchesInRow}
-            </span>
-          </strong>
+          <b>{position.stitchInRow}</b>
+          <span> / {position.stitchesInRow}</span>
         </span>
         <span>
           <span className="knitting-label">Left</span>
-          <strong>{counts.remaining}</strong>
+          <b>{counts.remaining}</b>
         </span>
       </div>
 
@@ -181,7 +172,7 @@ const KnittingMode: React.FC<KnittingModeProps> = ({
                   style={{ backgroundColor: swatch(run.colour) }}
                 />
                 <span className="knitting-run-text">
-                  Knit <strong>{run.length}</strong> in {yarnName(run.colour)}
+                  Knit <b>{run.length}</b> in {yarnName(run.colour)}
                 </span>
               </>
             )}
@@ -201,35 +192,30 @@ const KnittingMode: React.FC<KnittingModeProps> = ({
               ))}
             </div>
           )}
+
+          <div className="knitting-primary">
+            <button
+              type="button"
+              className="knitting-button knitting-button-primary"
+              onClick={() => step(1)}
+            >
+              Knit one
+              <span className="knitting-keys">space</span>
+            </button>
+            <button
+              type="button"
+              className="knitting-button knitting-button-run"
+              onClick={finishRun}
+              disabled={!run}
+            >
+              {run ? `Done all ${run.length}` : "Done the run"}
+              <span className="knitting-keys">enter</span>
+            </button>
+          </div>
         </>
       )}
 
-      <div className="knitting-actions" style={{ marginTop: "12px" }}>
-        <button
-          type="button"
-          className="knitting-button knitting-button-primary"
-          onClick={() => step(1)}
-          disabled={position.finished}
-        >
-          Knit one
-          <div style={{ fontSize: "0.75rem", opacity: 0.75, fontWeight: 400 }}>
-            space
-          </div>
-        </button>
-        <button
-          type="button"
-          className="knitting-button knitting-button-run"
-          onClick={finishRun}
-          disabled={position.finished || !run}
-        >
-          {run ? `Done all ${run.length}` : "Done the run"}
-          <div style={{ fontSize: "0.75rem", opacity: 0.75, fontWeight: 400 }}>
-            enter
-          </div>
-        </button>
-      </div>
-
-      <div className="knitting-actions" style={{ marginTop: "10px" }}>
+      <div className="knitting-secondary">
         <button
           type="button"
           className="knitting-button"
@@ -255,7 +241,7 @@ const KnittingMode: React.FC<KnittingModeProps> = ({
           End of row
         </button>
         <button type="button" className="knitting-button" onClick={onStop}>
-          Stop knitting
+          Stop
         </button>
       </div>
 
