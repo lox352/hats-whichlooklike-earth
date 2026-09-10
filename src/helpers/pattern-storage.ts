@@ -16,6 +16,14 @@ import { Stitch } from "../types/Stitch";
 const keyPrefix = "pattern-";
 
 /** Fired after any write, so open views can re-read. */
+/*
+ * Marks a pattern link as "open this straight into knitting mode".
+ *
+ * In the URL rather than in router state so that it survives a refresh: put
+ * the phone down mid-row, come back to it, and you are still knitting.
+ */
+export const knittingParam = "knitting";
+
 export const patternsChangedEvent = "storageUpdated";
 
 export const storageKeyFor = (patternId: string) =>

@@ -4,6 +4,7 @@ import { layOutStitches, StitchPosition } from "./helpers/pattern-layout";
 import "./KnittingPattern.css";
 import { useYarns } from "./useYarns";
 import { cssColour, displayYarn, YarnChoices } from "./helpers/yarn-preference";
+import { stitchMarkPath } from "./helpers/stitch-marks";
 
 interface KnittingPatternProps {
   stitches: Stitch[];
@@ -15,6 +16,17 @@ interface KnittingPatternProps {
 const cellSize = 10;
 /** Every nth grid line is drawn heavier, to make counting easier. */
 const emphasisEvery = 5;
+
+/**
+ * How far above the knitting panel the stitch being worked should sit, in rows.
+ *
+ * Enough that the row you are on and the few you have just finished are all
+ * clear of the panel, rather than the stitch you want hugging its top edge.
+ */
+const rowsAbovePanel = 5;
+
+const prefersReducedMotion = (): boolean =>
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const Label: React.FC<{
   row: number;
@@ -39,51 +51,53 @@ const StitchBox: React.FC<{
   isNext: boolean;
   yarns: YarnChoices;
 }> = React.memo(
-  ({ stitch, position, numRows, numCols, completed, isNext, yarns }) => (
-    <div
-      className={[
-        "chart-cell",
-        /*
-         * The heavy lines fall *after* every fifth stitch and row, counting
-         * from the bottom right as you knit.
-         *
-         * A cell carries its own right and bottom borders, and stitch number
-         * n sits at col 1 - n (so stitch 1 is col 0, and numbers grow
-         * leftwards). The line between stitch 5 and stitch 6 is therefore the
-         * right-hand border of stitch 6, which is col -5. Marking col -5,
-         * -10, -15 puts the line after each fifth stitch; marking stitch 5
-         * itself, as this used to, put it between 4 and 5.
-         */
-        position.col !== 0 && position.col % emphasisEvery === 0
-          ? "chart-cell-major-col"
-          : "",
-        position.row !== 0 && position.row % emphasisEvery === 0
-          ? "chart-cell-major-row"
-          : "",
-        completed ? "chart-cell-done" : "",
-        isNext ? "chart-cell-next" : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      data-next-stitch={isNext ? "true" : undefined}
-      style={{
-        gridRow: numRows + position.row,
-        gridColumn: numCols + position.col,
-        backgroundColor: cssColour(displayYarn(stitch.colour, yarns).colour),
-      }}
-    >
-      {stitch.type === "k2tog" && (
-        <div className="chart-mark chart-mark-k2tog" />
-      )}
-      {stitch.type === "k3tog" && (
-        <>
-          <div className="chart-mark chart-mark-k3tog-a" />
-          <div className="chart-mark chart-mark-k3tog-b" />
-          <div className="chart-mark chart-mark-k3tog-c" />
-        </>
-      )}
-    </div>
-  )
+  ({ stitch, position, numRows, numCols, completed, isNext, yarns }) => {
+    const mark = stitchMarkPath(stitch.type, 0, 0, cellSize);
+    return (
+      <div
+        className={[
+          "chart-cell",
+          /*
+           * The heavy lines fall *after* every fifth stitch and row, counting
+           * from the bottom right as you knit.
+           *
+           * A cell carries its own right and bottom borders, and stitch number
+           * n sits at col 1 - n (so stitch 1 is col 0, and numbers grow
+           * leftwards). The line between stitch 5 and stitch 6 is therefore the
+           * right-hand border of stitch 6, which is col -5. Marking col -5,
+           * -10, -15 puts the line after each fifth stitch; marking stitch 5
+           * itself, as this used to, put it between 4 and 5.
+           */
+          position.col !== 0 && position.col % emphasisEvery === 0
+            ? "chart-cell-major-col"
+            : "",
+          position.row !== 0 && position.row % emphasisEvery === 0
+            ? "chart-cell-major-row"
+            : "",
+          completed ? "chart-cell-done" : "",
+          isNext ? "chart-cell-next" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        data-next-stitch={isNext ? "true" : undefined}
+        style={{
+          gridRow: numRows + position.row,
+          gridColumn: numCols + position.col,
+          backgroundColor: cssColour(displayYarn(stitch.colour, yarns).colour),
+        }}
+      >
+        {mark && (
+          <svg
+            className="chart-mark"
+            viewBox={`0 0 ${cellSize} ${cellSize}`}
+            aria-hidden="true"
+          >
+            <path d={mark} vectorEffect="non-scaling-stroke" />
+          </svg>
+        )}
+      </div>
+    );
+  }
 );
 
 const KnittingPattern: React.FC<KnittingPatternProps> = ({
@@ -105,8 +119,8 @@ const KnittingPattern: React.FC<KnittingPatternProps> = ({
     [filteredStitches]
   );
 
-  // Keep the stitch being worked on screen, so the chart follows the knitter
-  // rather than having to be hunted for.
+  // Sideways, within the chart: keep the stitch being worked in the middle, so
+  // the chart follows the knitter rather than having to be hunted for.
   useEffect(() => {
     if (nextStitchId === undefined) return;
     const grid = gridRef.current;
@@ -116,11 +130,46 @@ const KnittingPattern: React.FC<KnittingPatternProps> = ({
       cell.offsetLeft - grid.clientWidth / 2 + cell.offsetWidth / 2;
     grid.scrollTo({
       left: Math.max(target, 0),
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-        ? "auto"
-        : "smooth",
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
     });
   }, [nextStitchId]);
+
+  /*
+   * And down the page: keep that stitch clear of the knitting panel.
+   *
+   * Only when the row changes. Within a row the stitch moves sideways, which
+   * the effect above handles, and scrolling the page on every stitch would
+   * have the whole chart twitching once per stitch.
+   */
+  const nextRow =
+    nextStitchId === undefined ? undefined : positions[nextStitchId]?.row;
+
+  useEffect(() => {
+    if (nextRow === undefined) return;
+    const cell = gridRef.current?.querySelector<HTMLElement>(
+      '[data-next-stitch="true"]'
+    );
+    if (!cell) return;
+    /*
+     * The panel is stuck to the bottom of the screen while you knit, so the
+     * part of the page you can actually see ends at its top edge rather than
+     * at the bottom of the window.
+     *
+     * Its height, not wherever it happens to be sitting: it is sticky, so at
+     * the very bottom of the page it comes unstuck and rides higher than it
+     * will once the page has scrolled. Aiming at that moving line settled
+     * the stitch six rows off.
+     */
+    const panel = document.querySelector<HTMLElement>(".knitting-panel");
+    const floor = window.innerHeight - (panel?.offsetHeight ?? 0);
+    const wanted = floor - rowsAbovePanel * cellSize;
+    const delta = cell.getBoundingClientRect().bottom - wanted;
+    if (Math.abs(delta) < 1) return;
+    window.scrollBy({
+      top: delta,
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+    });
+  }, [nextRow]);
 
   if (numRows === 0 || numCols === 0) {
     return <p>This pattern has no stitches to chart.</p>;

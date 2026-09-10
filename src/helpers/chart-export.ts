@@ -1,6 +1,7 @@
 import { Stitch } from "../types/Stitch";
 import { layOutStitches } from "./pattern-layout";
 import { displayYarn, YarnChoices } from "./yarn-preference";
+import { markStrokeFraction, stitchMarkPath } from "./stitch-marks";
 
 /**
  * Builds the chart as an SVG from the layout data, rather than trying to
@@ -60,23 +61,11 @@ const decreaseSymbol = (
   cell: number,
   colour: string
 ): string => {
-  const inset = cell * 0.2;
-  if (type === "k2tog") {
-    // A right-leaning stroke, the usual mark for "knit two together".
-    return `<path d="M${x + inset} ${y + cell - inset}L${x + cell - inset} ${
-      y + inset
-    }" stroke="${colour}" stroke-width="${cell * 0.09}" fill="none" stroke-linecap="round"/>`;
-  }
-  if (type === "k3tog") {
-    // A centred chevron: three stitches converging into one.
-    const mid = x + cell / 2;
-    return `<path d="M${x + inset} ${y + cell - inset}L${mid} ${y + inset}L${
-      x + cell - inset
-    } ${y + cell - inset}" stroke="${colour}" stroke-width="${
-      cell * 0.09
-    }" fill="none" stroke-linejoin="round" stroke-linecap="round"/>`;
-  }
-  return "";
+  const path = stitchMarkPath(type, x, y, cell);
+  if (!path) return "";
+  return `<path d="${path}" stroke="${colour}" stroke-width="${
+    cell * markStrokeFraction
+  }" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
 };
 
 export interface ChartSvg {

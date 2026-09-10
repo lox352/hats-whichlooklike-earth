@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SavedPattern } from "../types/SavedPattern";
 import {
+  knittingParam,
   bareIdFor,
   deletePattern,
   listPatterns,
@@ -68,7 +69,17 @@ const PatternCard: React.FC<{
         />
       </div>
       <div className="pattern-card-actions">
-        <Button variant="primary" onClick={() => navigate(`/pattern/${id}`)}>
+        {/* Straight into the knitting, rather than onto a page with another
+            button on it saying the same thing. A finished hat is for looking
+            at, so that one lands on the chart. */}
+        <Button
+          variant="primary"
+          onClick={() =>
+            navigate(
+              finished ? `/pattern/${id}` : `/pattern/${id}?${knittingParam}=1`
+            )
+          }
+        >
           {finished ? "See it" : started ? "Keep knitting" : "Start knitting"}
         </Button>
         <Button variant="secondary" onClick={() => navigate(`/render/${id}`)}>

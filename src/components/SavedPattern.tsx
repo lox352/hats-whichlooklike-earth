@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { SavedPattern as Pattern } from "../types/SavedPattern";
 import KnittingPattern from "../KnittingPattern";
 import KnittingMode from "./KnittingMode";
@@ -17,6 +17,7 @@ import {
   readPattern,
   setProgress,
   knittableStitchCount,
+  knittingParam,
 } from "../helpers/pattern-storage";
 import { useYarns } from "../useYarns";
 
@@ -25,7 +26,33 @@ const SavedPattern: React.FC = () => {
   const navigate = useNavigate();
   const { yarns, setYarns } = useYarns();
 
-  const [recordingProgress, setRecordingProgress] = useState(false);
+  /*
+   * Knitting mode is in the URL, not just in state, for two reasons: the home
+   * page links straight into it, so "Keep knitting" is one tap rather than
+   * two, and putting the phone down mid-row and coming back to the page leaves
+   * you where you were.
+   */
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [recordingProgress, setRecordingProgress] = useState(
+    () => searchParams.get(knittingParam) === "1"
+  );
+
+  const setKnitting = useCallback(
+    (knitting: boolean) => {
+      setRecordingProgress(knitting);
+      setSearchParams(
+        (params) => {
+          const next = new URLSearchParams(params);
+          if (knitting) next.set(knittingParam, "1");
+          else next.delete(knittingParam);
+          return next;
+        },
+        // Replace, so leaving knitting mode is not a step to go back through.
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
   /*
    * Miscounting is the normal failure mode when knitting, so every change is
    * pushed onto a stack that can be walked back. Kept in memory only: it is
@@ -112,10 +139,7 @@ const SavedPattern: React.FC = () => {
               >
                 Knit another
               </Button>
-              <Button
-                variant="quiet"
-                onClick={() => setRecordingProgress(true)}
-              >
+              <Button variant="quiet" onClick={() => setKnitting(true)}>
                 Adjust the count
               </Button>
             </>
@@ -123,7 +147,7 @@ const SavedPattern: React.FC = () => {
             <Button
               variant="primary"
               size="lg"
-              onClick={() => setRecordingProgress(true)}
+              onClick={() => setKnitting(true)}
             >
               {percent > 0 ? "Keep knitting" : "Start knitting"}
             </Button>
@@ -162,7 +186,7 @@ const SavedPattern: React.FC = () => {
           stitches={savedPattern.stitches}
           progress={savedPattern.progress}
           setProgress={commitProgress}
-          onStop={() => setRecordingProgress(false)}
+          onStop={() => setKnitting(false)}
           canUndo={undoStack.length > 0}
           onUndo={undo}
         />

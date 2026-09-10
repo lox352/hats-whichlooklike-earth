@@ -71,45 +71,26 @@
   text-align: left;
 }
 
-/* Decrease marks, drawn with borders on the screen chart. */
+/*
+ * Decrease marks. The shapes come from helpers/stitch-marks, shared with the
+ * exported chart, so screen and paper show the same symbol.
+ */
 .chart-mark {
   position: absolute;
+  /*
+   * The cell carries its own right and bottom graticule line inside its ten
+   * pixels, so the padding box is exactly the square between the lines - which
+   * is the box a knitter sees, and the box the mark should be centred in.
+   */
+  inset: 0;
   width: 100%;
-  border-color: color-mix(in srgb, var(--ink) 75%, transparent);
-  pointer-events: none;
-}
-
-.chart-mark-k2tog {
-  top: 14%;
-  left: 15%;
   height: 100%;
-  border-top: 1px solid;
-  transform: rotate(45deg);
-  transform-origin: -0.5px 0;
-}
-
-.chart-mark-k3tog-a,
-.chart-mark-k3tog-b,
-.chart-mark-k3tog-c {
-  left: calc(-50% - 0.5px);
-  top: 10%;
-  border-right: 1px solid;
-}
-
-.chart-mark-k3tog-a {
-  height: 85%;
-  transform-origin: top right;
-  transform: rotate(20deg);
-}
-
-.chart-mark-k3tog-b {
-  height: 80%;
-}
-
-.chart-mark-k3tog-c {
-  height: 85%;
-  transform-origin: top right;
-  transform: rotate(-20deg);
+  fill: none;
+  stroke: color-mix(in srgb, var(--ink) 78%, transparent);
+  stroke-width: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
 }
 
 .chart-caption {
