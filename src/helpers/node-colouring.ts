@@ -1,8 +1,21 @@
 import { Point } from "../types/Point";
 import { GlobalCoordinates } from "../types/GlobalCoordinates";
-import { getClosestColor, Palette } from "./raster-colouring";
+import { colourAt, loadGlobe, Palette } from "./raster-colouring";
 import { type RGB } from "../types/RGB";
 import { OrientationParameters } from "../types/OrientationParameters";
+
+/** Colour used when a stitch cannot be placed on the globe at all. */
+const unknownColour: RGB = Palette.Blue;
+
+/**
+ * asin/acos are only defined on [-1, 1], and float error can push us just
+ * past. NaN is the one input with no sensible clamp, so it becomes 0;
+ * infinities clamp to the interval ends like any other out-of-range value.
+ */
+const clampToUnit = (value: number): number => {
+  if (Number.isNaN(value)) return 0;
+  return Math.min(Math.max(value, -1), 1);
+};
 
 function rotateAboutAxis(
   coord: GlobalCoordinates,
@@ -20,24 +33,25 @@ function rotateAboutAxis(
 }
 
 /**
- * Rotates the unit sphere such that {latitude: angleInDegrees, longitude: 0} ends up at {latitude: 0, longitude: 0}.
- * @param coord - The original coordinate { latitude, longitude }.
- * @param angleInDegrees - The angle to rotate by in degrees.
- * @returns The rotated coordinate { latitude, longitude }.
+ * Rotates the unit sphere about the axis through {lat 0, lon +/-90}, which
+ * slides points along the lon = 0 meridian. A point at {lat: t, lon: 0} ends up
+ * at {lat: t + angleInDegrees, lon: 0}.
+ *
+ * Note this *adds* to the latitude rather than zeroing it. That is deliberate:
+ * see rotateToDestination, which maps hat coordinates onto the globe (the
+ * inverse of what you might expect), and relies on this direction.
  */
 function rotateVertically(
-  coord: { latitude: number; longitude: number },
+  coord: GlobalCoordinates,
   angleInDegrees: number
-): { latitude: number; longitude: number } {
+): GlobalCoordinates {
   const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
   const toDegrees = (radians: number) => (radians * 180) / Math.PI;
 
-  // Convert input latitude and longitude to radians
   const latRad = toRadians(coord.latitude);
   const lonRad = toRadians(coord.longitude);
   const angleRad = toRadians(angleInDegrees);
 
-  // Calculate the rotated coordinates
   const sinAngle = Math.sin(angleRad);
   const cosAngle = Math.cos(angleRad);
 
@@ -45,24 +59,25 @@ function rotateVertically(
   const y = Math.cos(latRad) * Math.sin(lonRad);
   const z = Math.sin(latRad);
 
-  // Apply rotation around the y-axis
+  // Rotation about the y axis.
   const xRot = cosAngle * x - sinAngle * z;
-  const yRot = y; // y-coordinate remains unchanged during vertical rotation
+  const yRot = y;
   const zRot = sinAngle * x + cosAngle * z;
 
-  // Convert back to spherical coordinates
-  const latitude = toDegrees(Math.asin(zRot));
-  const longitude = toDegrees(Math.atan2(yRot, xRot));
-
-  return { latitude, longitude };
+  return {
+    latitude: toDegrees(Math.asin(clampToUnit(zRot))),
+    longitude: toDegrees(Math.atan2(yRot, xRot)),
+  };
 }
 
 /**
- * Rotates a given coordinate so that the `targetPoint` becomes either the new centre or the new north pole.
- * @param coord - The original coordinate { lat, lon }.
- * @param targetPoint - The new pole coordinate { lat, lon } to align to { lat: 90, lon: 0 }.
- * @param destination - The destination pole to align to (either the north pole or { lat: 0, lon: 0 }).
- * @returns The rotated coordinate { lat, lon }.
+ * Maps a coordinate in *hat space* to the coordinate on the globe that should
+ * be sampled for it, such that the user's chosen point lands on their chosen
+ * part of the hat.
+ *
+ * Because this is the inverse mapping, latitude is applied first and longitude
+ * second. The three anchors in hat space are: crown = {90, 0}, front = {0, 0},
+ * rim = {-90, 0}; each is carried to the target coordinate.
  */
 function rotateToDestination(
   coord: GlobalCoordinates,
@@ -70,81 +85,59 @@ function rotateToDestination(
 ): GlobalCoordinates {
   const { latitude: targetLatitude, longitude: targetLongitude } =
     orientationParameters.coordinates;
+
   let rotatedCoord;
-  if (orientationParameters.targetDestination === "front") {
-    rotatedCoord = rotateVertically(coord, targetLatitude);
-  } else if (orientationParameters.targetDestination === "crown") {
-    rotatedCoord = rotateVertically(coord, targetLatitude - 90);
-  } else if (orientationParameters.targetDestination === "rim") {
-    rotatedCoord = rotateVertically(coord, targetLatitude + 90);
-  } else {
-    throw new Error(
-      `Invalid target destination: ${orientationParameters.targetDestination}`
-    );
+  switch (orientationParameters.targetDestination) {
+    case "front":
+      rotatedCoord = rotateVertically(coord, targetLatitude);
+      break;
+    case "crown":
+      rotatedCoord = rotateVertically(coord, targetLatitude - 90);
+      break;
+    case "rim":
+      rotatedCoord = rotateVertically(coord, targetLatitude + 90);
+      break;
+    default:
+      throw new Error(
+        `Invalid target destination: ${orientationParameters.targetDestination}`
+      );
   }
-  const result = rotateAboutAxis(rotatedCoord, targetLongitude);
-  return result;
+
+  return rotateAboutAxis(rotatedCoord, targetLongitude);
 }
-
-const colourNode = async (
-  position: Point,
-  maxY: number,
-  orientationParameters: OrientationParameters,
-  palette: RGB[] = Object.values(Palette)
-): Promise<RGB> => {
-  const coordinates = getGlobalCoordinates(position, maxY);
-  const rotatedCoordinates = rotateToDestination(
-    coordinates,
-    orientationParameters
-  );
-  if (
-    !orientationParameters.displayNewZealand &&
-    isNewZealand(rotatedCoordinates)
-  ) {
-    return Palette.Blue;
-  }
-  const colour = await getClosestColor(rotatedCoordinates, palette);
-
-  if (!colour) {
-    console.error("Failed to get colour for node");
-    return [0, 0, 0];
-  }
-  return colour;
-};
 
 const getGlobalCoordinates = (
   position: Point,
   maxY: number
 ): GlobalCoordinates => {
   const { x, y, z } = position;
-  // Given Cartesian coordinates (x, y, z)
-  const newY = y - maxY / 2;
-  const radius = Math.sqrt(x * x + newY * newY + z * z);
+  const equatorY = maxY / 2;
+  const heightAboveEquator = y - equatorY;
+  const radius = Math.sqrt(
+    x * x + heightAboveEquator * heightAboveEquator + z * z
+  );
 
-  // Normalize coordinates
-  const xNorm = x / radius;
-  const yNorm = newY / radius;
-  const zNorm = z / radius;
+  // Longitude is the same in both projections below.
+  const longitudeDegrees =
+    radius === 0 ? 0 : Math.atan2(z / radius, -x / radius) * (180 / Math.PI);
 
-  // Compute longitude and latitude
-  const longitude = Math.atan2(zNorm, -xNorm); // Radians
-  const latitude = Math.asin(yNorm); // Radians
-
-  // Convert to degrees
-  const longitudeDegrees = longitude * (180 / Math.PI);
-  const latitudeDegrees = latitude * (180 / Math.PI);
-
-  if (y > maxY / 2) {
+  if (y > equatorY) {
+    // Above the equator the hat is roughly a dome, so project spherically.
+    const latitudeDegrees =
+      radius === 0
+        ? 90
+        : Math.asin(clampToUnit(heightAboveEquator / radius)) * (180 / Math.PI);
     return { latitude: latitudeDegrees, longitude: longitudeDegrees };
-  } else {
-    const normalisedVerticalDistance = (y - maxY / 2) / (maxY / 2);
-    const angle = Math.asin(normalisedVerticalDistance);
-    const cylindricalLatitude = angle * (180 / Math.PI);
-    return { latitude: cylindricalLatitude, longitude: longitudeDegrees };
   }
-};
 
-export { colourNode };
+  // Below the equator the hat is a cylinder, so map height directly onto
+  // latitude to keep the map continuous down the sides.
+  const normalisedVerticalDistance =
+    equatorY === 0 ? 0 : heightAboveEquator / equatorY;
+  const cylindricalLatitude =
+    Math.asin(clampToUnit(normalisedVerticalDistance)) * (180 / Math.PI);
+  return { latitude: cylindricalLatitude, longitude: longitudeDegrees };
+};
 
 function isNewZealand(coordinates: GlobalCoordinates) {
   return (
@@ -154,3 +147,77 @@ function isNewZealand(coordinates: GlobalCoordinates) {
     coordinates.longitude < 180
   );
 }
+
+/**
+ * The globe coordinate a single stitch position samples, after orientation.
+ * Exported for testing.
+ */
+const globeCoordinatesForStitch = (
+  position: Point,
+  maxY: number,
+  orientationParameters: OrientationParameters
+): GlobalCoordinates =>
+  rotateToDestination(
+    getGlobalCoordinates(position, maxY),
+    orientationParameters
+  );
+
+/**
+ * Colour every stitch position in one pass.
+ *
+ * The raster is decoded once up front and then sampled synchronously, so this
+ * does not yield per stitch. Callers get one array back and can apply it in a
+ * single update, instead of one state write per stitch.
+ */
+const colourNodes = async (
+  positions: Point[],
+  orientationParameters: OrientationParameters,
+  palette: RGB[] = Object.values(Palette)
+): Promise<RGB[]> => {
+  const globe = await loadGlobe();
+
+  const maxY = positions.reduce((max, { y }) => (y > max ? y : max), 0);
+
+  return positions.map((position) => {
+    const coordinates = globeCoordinatesForStitch(
+      position,
+      maxY,
+      orientationParameters
+    );
+
+    if (!orientationParameters.displayNewZealand && isNewZealand(coordinates)) {
+      return Palette.Blue;
+    }
+
+    return colourAt(globe, coordinates, palette) ?? unknownColour;
+  });
+};
+
+/** Single-stitch colouring. Prefer colourNodes when colouring a whole hat. */
+const colourNode = async (
+  position: Point,
+  maxY: number,
+  orientationParameters: OrientationParameters,
+  palette: RGB[] = Object.values(Palette)
+): Promise<RGB> => {
+  const globe = await loadGlobe();
+  const coordinates = globeCoordinatesForStitch(
+    position,
+    maxY,
+    orientationParameters
+  );
+  if (!orientationParameters.displayNewZealand && isNewZealand(coordinates)) {
+    return Palette.Blue;
+  }
+  return colourAt(globe, coordinates, palette) ?? unknownColour;
+};
+
+export {
+  colourNode,
+  colourNodes,
+  getGlobalCoordinates,
+  globeCoordinatesForStitch,
+  rotateToDestination,
+  clampToUnit,
+  isNewZealand,
+};
