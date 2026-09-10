@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import ChainModel from "../ChainModel/ChainModel";
+import HatCanvas from "../ChainModel/HatCanvas";
 import { readPattern } from "../helpers/pattern-storage";
 
 const SavedRender: React.FC = () => {
@@ -37,13 +37,11 @@ const SavedRender: React.FC = () => {
   return (
     <div style={{ textAlign: "left", padding: "20px" }}>
       <h1 style={{ fontSize: "2.5rem", marginBottom: "20px" }}>Pre-dyed Hat</h1>
-      <div style={{ height: "350px" }}>
-        <ChainModel
-          stitches={pattern.stitches}
-          simulationActive={false}
-          onAnyStitchRendered={() => setAnyStitchRendered(true)}
-        />
-      </div>
+      <HatCanvas
+        stitches={pattern.stitches}
+        simulationActive={false}
+        onAnyStitchRendered={() => setAnyStitchRendered(true)}
+      />
       <p aria-live="polite" style={{ fontStyle: "italic" }}>
         {!anyStitchRendered
           ? "Summoning stitches..."

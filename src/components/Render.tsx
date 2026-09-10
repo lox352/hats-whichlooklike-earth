@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import ChainModel from "../ChainModel/ChainModel";
+import HatCanvas from "../ChainModel/HatCanvas";
 import { Stitch } from "../types/Stitch";
 import { useNavigate } from "react-router-dom";
 import { OrientationParameters } from "../types/OrientationParameters";
@@ -79,17 +79,15 @@ const Render: React.FC<RenderProps> = ({
       <h1 style={{ fontSize: "2.5rem", marginBottom: "20px" }}>
         Dyeing Your Hat
       </h1>
-      <div style={{ height: "350px" }}>
-        <ChainModel
-          stitches={stitches}
-          setStitches={setStitches}
-          orientationParameters={orientationParameters}
-          simulationActive={simulationActive}
-          setSimulationActive={setSimulationActive}
-          onAnyStitchRendered={handleAnyStitchRendered}
-          onDyeingComplete={handleDyeingComplete}
-        />
-      </div>
+      <HatCanvas
+        stitches={stitches}
+        setStitches={setStitches}
+        orientationParameters={orientationParameters}
+        simulationActive={simulationActive}
+        setSimulationActive={setSimulationActive}
+        onAnyStitchRendered={handleAnyStitchRendered}
+        onDyeingComplete={handleDyeingComplete}
+      />
       <p aria-live="polite" style={{ fontStyle: "italic" }}>
         {statusText[stage]}
       </p>
