@@ -2,7 +2,7 @@ import { BallCollider, RapierRigidBody, RigidBody } from "@react-three/rapier";
 import { Point } from "../types/Point";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
-import React from "react";
+import React, { useRef } from "react";
 
 const vertexShader = `
   varying vec2 vUv;
@@ -29,6 +29,12 @@ const fragmentShader = `
   }
 `;
 
+/**
+ * Stitches face the centre of the hat. Shared, because allocating a Vector3
+ * per stitch per frame is thousands of throwaway objects every frame.
+ */
+const hatCentre = new THREE.Vector3(0, 0, 0);
+
 export default function PointMass({
   position,
   rigidBodyRef,
@@ -46,11 +52,13 @@ export default function PointMass({
   chevronTexture: THREE.Texture;
   geometry: THREE.PlaneGeometry;
 }) {
-  const meshRef = React.createRef<THREE.Mesh>();
+  // useRef, not createRef: createRef during render hands back a fresh object
+  // every render, so meshRef.current is null on the next frame.
+  const meshRef = useRef<THREE.Mesh>(null);
 
   useFrame(() => {
     if (rigidBodyRef.current && meshRef.current) {
-      meshRef.current.lookAt(new THREE.Vector3(0, 0, 0)); // Target point (0, 0, 0) or you can change it
+      meshRef.current.lookAt(hatCentre);
     }
   });
 
@@ -65,7 +73,7 @@ export default function PointMass({
       angularDamping={0.8}
     >
       <BallCollider args={[0.02]} />
-      {visible && colourRef.current && (
+      {visible && colourRef?.current && (
         <mesh scale={2} ref={meshRef} geometry={geometry}>
           <shaderMaterial
             uniforms={{

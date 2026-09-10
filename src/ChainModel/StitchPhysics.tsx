@@ -1,9 +1,9 @@
-import React, { MutableRefObject, useEffect, useRef, useState } from "react";
+import React, { MutableRefObject, useEffect, useMemo, useRef, useState } from "react";
 import PointMass from "./PointMass";
 import Link from "./Link";
 import { RapierRigidBody } from "@react-three/rapier";
 import { Stitch } from "../types/Stitch";
-import { colourNode } from "../helpers/node-colouring";
+import { colourNodes } from "../helpers/node-colouring";
 import * as THREE from "three";
 import { adjacentStitchDistance, verticalStitchDistance } from "../constants";
 import { useFrame } from "@react-three/fiber";
@@ -17,9 +17,7 @@ function createChevronTexture() {
   const ctx = canvas.getContext("2d");
 
   if (ctx) {
-    // Background (optional)
     ctx.clearRect(0, 0, size, size);
-
     ctx.fillStyle = "white";
 
     // Draw downward-facing chevron
@@ -38,9 +36,6 @@ function createChevronTexture() {
   return new THREE.CanvasTexture(canvas);
 }
 
-const geometry = new THREE.PlaneGeometry(1, 1);
-const chevronTexture = createChevronTexture();
-
 interface StitchPhysicsProps {
   stitchesRef: React.MutableRefObject<Stitch[]>;
   setStitches?: React.Dispatch<React.SetStateAction<Stitch[]>>;
@@ -48,6 +43,8 @@ interface StitchPhysicsProps {
   simulationActive: boolean;
   setSimulationActive?: React.Dispatch<React.SetStateAction<boolean>>;
   onAnyStitchRendered?: () => void;
+  /** Fired once the whole hat has been coloured and the colours applied. */
+  onDyeingComplete?: () => void;
 }
 
 const StitchPhysics: React.FC<StitchPhysicsProps> = ({
@@ -57,28 +54,41 @@ const StitchPhysics: React.FC<StitchPhysicsProps> = ({
   simulationActive,
   setSimulationActive,
   onAnyStitchRendered,
+  onDyeingComplete,
 }) => {
   const setRefsVersion = useState(0)[1];
   const frameNumber = useRef(0);
   const stitches = stitchesRef.current;
 
-  const stitchRefs = useRef<React.RefObject<RapierRigidBody>[]>(
-    stitches.map(() => React.createRef())
-  );
+  // The texture and geometry are owned by this component instance, not the
+  // module, so disposing them on unmount cannot affect a later mount.
+  const chevronTexture = useMemo(() => createChevronTexture(), []);
+  const geometry = useMemo(() => new THREE.PlaneGeometry(1, 1), []);
 
-  const colourRefs = useRef<React.MutableRefObject<Float32Array>[]>(
-    stitches.map((stitch) => {
+  // Built once and then grown/shrunk in the effect below. Passing the mapped
+  // array straight to useRef would rebuild it on every render and throw the
+  // result away.
+  const stitchRefs = useRef<React.RefObject<RapierRigidBody>[]>([]);
+  if (stitchRefs.current.length === 0) {
+    stitchRefs.current = stitches.map(() => React.createRef());
+  }
+
+  const colourRefs = useRef<React.MutableRefObject<Float32Array>[]>([]);
+  if (colourRefs.current.length === 0) {
+    colourRefs.current = stitches.map((stitch) => {
       const ref = React.createRef() as MutableRefObject<Float32Array>;
-      if (!ref.current) {
-        ref.current = new Float32Array([
-          stitch.colour[0] / 255,
-          stitch.colour[1] / 255,
-          stitch.colour[2] / 255,
-        ]);
-      }
+      ref.current = new Float32Array([
+        stitch.colour[0] / 255,
+        stitch.colour[1] / 255,
+        stitch.colour[2] / 255,
+      ]);
       return ref;
-    })
-  );
+    });
+  }
+
+  // Colouring is expensive and must happen exactly once per mount, even though
+  // useFrame can re-enter while the async work is in flight.
+  const colouringStarted = useRef(false);
 
   useFrame(() => {
     if (onAnyStitchRendered && frameNumber.current === 0) {
@@ -108,30 +118,36 @@ const StitchPhysics: React.FC<StitchPhysicsProps> = ({
     }
 
     setSimulationActive(false);
+
+    if (colouringStarted.current) return;
+    colouringStarted.current = true;
+
     (async () => {
-      const maxY = stitchRefs.current.reduce((max, ref) => {
-        const y = ref.current?.translation().y || 0;
-        return y > max ? y : max;
-      }, 0);
+      const positions = stitchRefs.current.map(
+        (stitchRef, index) =>
+          stitchRef.current?.translation() ?? stitches[index].position
+      );
 
-      for (let i = 1; i < stitchRefs.current.length; i++) {
-        const stitchRef = stitchRefs.current[i];
-        if (!stitchRef.current) continue;
-        const colourRef = colourRefs.current[i];
-        if (!colourRef.current) continue;
+      const colours = await colourNodes(positions, orientationParameters);
 
-        const position = stitchRef.current.translation();
-        const colour = await colourNode(position, maxY, orientationParameters);
-        setStitches((stitches) =>
-          stitches.map((stitch) =>
-            stitch.id === i ? { ...stitch, colour, position } : stitch
-          )
-        );
+      colourRefs.current.forEach((colourRef, index) => {
+        const colour = colours[index];
+        if (!colourRef.current || !colour) return;
         colourRef.current[0] = colour[0] / 255;
         colourRef.current[1] = colour[1] / 255;
         colourRef.current[2] = colour[2] / 255;
-      }
-      console.log("Colouring finished");
+      });
+
+      // One state update for the whole hat rather than one per stitch.
+      setStitches((current) =>
+        current.map((stitch, index) => ({
+          ...stitch,
+          colour: colours[index] ?? stitch.colour,
+          position: positions[index] ?? stitch.position,
+        }))
+      );
+
+      onDyeingComplete?.();
     })();
   });
 
@@ -146,19 +162,16 @@ const StitchPhysics: React.FC<StitchPhysicsProps> = ({
 
     stitches.forEach((stitch) => {
       const ref = stitchRefs.current[stitch.id];
+      if (!ref?.current) return;
       if (stitch.links.length <= 1) {
-        if (ref && ref.current) {
-          ref.current.setTranslation(stitch.position, false); // Update position
-          ref.current.setBodyType(1, false);
-        }
+        ref.current.setTranslation(stitch.position, false);
+        ref.current.setBodyType(1, false); // fixed
       } else {
-        if (ref && ref.current) {
-          ref.current.setBodyType(0, false);
-        }
+        ref.current.setBodyType(0, false); // dynamic
       }
     });
 
-    setRefsVersion((v) => v + (1 % 1000));
+    setRefsVersion((v) => (v + 1) % 1000);
   }, [stitches, setRefsVersion]);
 
   useEffect(() => {
@@ -166,7 +179,7 @@ const StitchPhysics: React.FC<StitchPhysicsProps> = ({
       chevronTexture.dispose();
       geometry.dispose();
     };
-  }, []);
+  }, [chevronTexture, geometry]);
 
   return (
     <React.Fragment>

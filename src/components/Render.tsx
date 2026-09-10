@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import ChainModel from "../ChainModel/ChainModel";
 import { Stitch } from "../types/Stitch";
 import { useNavigate } from "react-router-dom";
@@ -10,58 +10,74 @@ interface RenderProps {
   orientationParameters: OrientationParameters;
 }
 
+type Stage = "summoning" | "settling" | "dyeing" | "done";
+
+const statusText: Record<Stage, string> = {
+  summoning: "Summoning stitches...",
+  settling: "Letting stitches settle...",
+  dyeing: "Dyeing your hat...",
+  done: "Pinch and zoom to see the pattern in more detail",
+};
+
+/**
+ * Stages only ever move forward. The physics signals and the colouring signal
+ * arrive from different places, and colouring can finish before React has
+ * processed the "simulation stopped" update, so ordering must not matter.
+ */
+const stageOrder: Stage[] = ["summoning", "settling", "dyeing", "done"];
+
 const Render: React.FC<RenderProps> = ({
   stitches,
   setStitches,
   orientationParameters,
 }) => {
-  const [anyStichRendered, setAnyStitchRendered] = React.useState(false);
-  const [simulationActive, setSimulationActive] = React.useState(false);
-  const [simulationCompleted, setSimulationCompleted] = React.useState(false);
-  const [patternGenerating, setPatternGenerating] = React.useState(false);
-  const [dyingCompleted, setDyingCompleted] = React.useState(false);
-  const simulationRunCount = React.useRef(0);
-
-  React.useEffect(() => {
-    if (simulationActive) {
-      simulationRunCount.current += 1;
-    }
-
-    if (simulationRunCount.current === 1 && !simulationActive) {
-      setSimulationCompleted(true);
-      setTimeout(() => {
-        setDyingCompleted(true);
-      }, 0);
-    }
-  }, [simulationActive]);
-
   const navigate = useNavigate();
+  const [stage, setStage] = useState<Stage>("summoning");
+  const [simulationActive, setSimulationActive] = useState(false);
+  const simulationHasRun = useRef(false);
 
-  const generatePattern = () => {
-    setPatternGenerating(true);
-  };
+  const advanceTo = useCallback(
+    (next: Stage) =>
+      setStage((current) =>
+        stageOrder.indexOf(next) > stageOrder.indexOf(current) ? next : current
+      ),
+    []
+  );
 
-  React.useEffect(() => {
-    if (patternGenerating) {
-      navigate("/pattern");
+  // The stage is driven by signals from the physics component rather than by
+  // counting effect runs and guessing with a timeout.
+  const handleAnyStitchRendered = useCallback(
+    () => advanceTo("settling"),
+    [advanceTo]
+  );
+  const handleDyeingComplete = useCallback(() => advanceTo("done"), [advanceTo]);
+
+  useEffect(() => {
+    if (simulationActive) {
+      simulationHasRun.current = true;
+      advanceTo("settling");
+      return;
     }
-  }, [navigate, patternGenerating]);
+    // Physics has come to rest, so colouring is under way.
+    if (simulationHasRun.current) {
+      advanceTo("dyeing");
+    }
+  }, [simulationActive, advanceTo]);
 
   useEffect(() => {
     if (stitches.length === 0) {
-      navigate("/");
+      navigate("/", { replace: true });
     }
   }, [stitches, navigate]);
 
-  const thereAreStitches = stitches.length > 0;
-  if (!thereAreStitches) {
+  if (stitches.length === 0) {
     return null;
   }
 
   return (
     <div style={{ textAlign: "left", padding: "20px" }}>
       <h1 style={{ fontSize: "2.5rem", marginBottom: "20px" }}>
-        Dying Your Hat
+        Dyeing Your Hat
       </h1>
       <div style={{ height: "350px" }}>
         <ChainModel
@@ -70,21 +86,14 @@ const Render: React.FC<RenderProps> = ({
           orientationParameters={orientationParameters}
           simulationActive={simulationActive}
           setSimulationActive={setSimulationActive}
-          onAnyStitchRendered={() => {
-            setAnyStitchRendered(true);
-          }}
+          onAnyStitchRendered={handleAnyStitchRendered}
+          onDyeingComplete={handleDyeingComplete}
         />
       </div>
-      <i>
-        {!anyStichRendered
-          ? "Summoning stitches..."
-          : !simulationCompleted
-          ? "Letting stitches settle..."
-          : !dyingCompleted
-          ? "We're almost there..."
-          : "Pinch and zoom to see the pattern in more detail"}
-      </i>
-      {dyingCompleted && (
+      <p aria-live="polite" style={{ fontStyle: "italic" }}>
+        {statusText[stage]}
+      </p>
+      {stage === "done" && (
         <div style={{ marginTop: "10px" }}>
           <button
             style={{
@@ -95,10 +104,9 @@ const Render: React.FC<RenderProps> = ({
               borderRadius: "4px",
               cursor: "pointer",
             }}
-            disabled={simulationActive}
-            onClick={generatePattern}
+            onClick={() => navigate("/pattern")}
           >
-            {patternGenerating ? "Generating pattern..." : "Generate Pattern"}
+            Generate Pattern
           </button>
         </div>
       )}
