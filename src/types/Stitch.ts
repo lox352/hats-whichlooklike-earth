@@ -1,4 +1,4 @@
-import { RGB } from "../PixelCanvas/PixelGrid";
+import { RGB } from "./RGB";
 import { Point } from "./Point";
 import { StitchType } from "./StitchType";
 
@@ -7,6 +7,6 @@ export interface Stitch {
   position: Point;
   links: number[];
   fixed: boolean;
-  type: StitchType
+  type: StitchType;
   colour: RGB;
 }
