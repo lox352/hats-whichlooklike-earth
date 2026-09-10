@@ -100,7 +100,6 @@ const SavedPattern: React.FC = () => {
         />
       </div>
       <ChartPrintSheet stitches={savedPattern.stitches} title={name} />
-      <YarnChoicesEditor yarns={yarns} setYarns={setYarns} />
 
       {!recordingProgress && (
         <div className="render-actions screen-only">
@@ -150,9 +149,10 @@ const SavedPattern: React.FC = () => {
         </div>
       )}
 
-      {/* Taking the chart away matters less than getting on with it, so it
-          sits at the bottom. */}
+      {/* Yarn names, the written version and the downloads all matter less
+          than getting on with the knitting, so they sit at the bottom. */}
       <div className="chart-extras screen-only">
+        <YarnChoicesEditor yarns={yarns} setYarns={setYarns} />
         <WrittenInstructions stitches={savedPattern.stitches} />
         <ChartActions stitches={savedPattern.stitches} name={name} />
       </div>

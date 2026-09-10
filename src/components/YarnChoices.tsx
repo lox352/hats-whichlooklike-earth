@@ -50,7 +50,7 @@ const YarnChoices: React.FC<YarnChoicesProps> = ({ yarns, setYarns }) => {
   };
 
   return (
-    <div className="screen-only" style={{ marginTop: "14px" }}>
+    <div className="screen-only">
       <Button variant="quiet" aria-expanded={open} onClick={() => setOpen(!open)}>
         {open ? "Hide your yarns" : "Your yarns"}
       </Button>

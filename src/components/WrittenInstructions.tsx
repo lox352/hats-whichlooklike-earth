@@ -51,7 +51,7 @@ const WrittenInstructions: React.FC<WrittenInstructionsProps> = ({
   };
 
   return (
-    <div className="screen-only" style={{ marginTop: "14px" }}>
+    <div className="screen-only">
       <Button variant="quiet" aria-expanded={open} onClick={() => setOpen(!open)}>
         {open ? "Hide written instructions" : "Written instructions"}
       </Button>
