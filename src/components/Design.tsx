@@ -1,140 +1,19 @@
-import React, { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { getStitches } from "../helpers/stitches";
-import { Stitch } from "../types/Stitch";
-import {
-  defaultNumberOfRows,
-  defaultStitchesPerRow,
-  northPole,
-  southPole,
-} from "../constants";
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { northPole, southPole } from "../constants";
 import DestinationType from "../types/DestinationType";
-import { OrientationParameters } from "../types/OrientationParameters";
+import { GlobalCoordinates } from "../types/GlobalCoordinates";
+import { HatDesign } from "../types/HatDesign";
 import {
   DecreaseMethod,
   DesignProblem,
   validateDesign,
 } from "../types/KnittingMachine";
-
-interface PatternProps {
-  setStitches: React.Dispatch<React.SetStateAction<Stitch[]>>;
-  orientationParameters: OrientationParameters;
-  setOrientationParameters: React.Dispatch<
-    React.SetStateAction<OrientationParameters>
-  >;
-}
-
-interface InputFieldProps {
-  label: string;
-  value: number;
-  valueSetter: (value: number) => void;
-  problem?: string;
-}
-
-const InputField: React.FC<InputFieldProps> = ({
-  label,
-  value,
-  valueSetter,
-  problem,
-}) => (
-  <div style={{ marginBottom: "15px" }}>
-    <label>
-      {label}
-      <br />
-      <input
-        type="number"
-        value={value === 0 ? "" : value}
-        onChange={(e) => valueSetter(Number(e.target.value))}
-        aria-invalid={problem ? true : undefined}
-        style={problem ? { outline: "2px solid #f44336" } : undefined}
-      />
-    </label>
-    {problem && (
-      <div
-        role="alert"
-        style={{ color: "#ff9a91", fontSize: "0.85rem", marginTop: "4px" }}
-      >
-        {problem}
-      </div>
-    )}
-  </div>
-);
-
-interface CoordinatesInputProps {
-  orientationParameters: OrientationParameters;
-  setOrientationParameters: React.Dispatch<
-    React.SetStateAction<OrientationParameters>
-  >;
-  disabled: boolean;
-}
-
-const CoordinatesInput: React.FC<CoordinatesInputProps> = ({
-  orientationParameters,
-  setOrientationParameters,
-  disabled,
-}) => {
-  const { coordinates } = orientationParameters;
-  const setLatitude = (latitude: number) =>
-    setOrientationParameters({
-      ...orientationParameters,
-      coordinates: { ...coordinates, latitude },
-    });
-  const setLongitude = (longitude: number) =>
-    setOrientationParameters({
-      ...orientationParameters,
-      coordinates: { ...coordinates, longitude },
-    });
-  return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "flex-start",
-        alignItems: "baseline",
-        marginBottom: "20px",
-      }}
-    >
-      <label
-        style={{
-          marginRight: "20px",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "flex-start",
-        }}
-      >
-        Latitude
-        <input
-          type="number"
-          value={coordinates.latitude}
-          min="-90"
-          max="90"
-          step="0.1"
-          onChange={(e) => setLatitude(Number(e.target.value))}
-          style={{ marginTop: "5px" }}
-          disabled={disabled}
-        />
-      </label>
-      <label
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "flex-start",
-        }}
-      >
-        Longitude
-        <input
-          type="number"
-          value={coordinates.longitude}
-          min="-180"
-          max="180"
-          step="0.1"
-          onChange={(e) => setLongitude(Number(e.target.value))}
-          style={{ marginTop: "5px" }}
-          disabled={disabled}
-        />
-      </label>
-    </div>
-  );
-};
+import { designFromSearchParams, designToSearchParams } from "../helpers/design-url";
+import InputField from "./InputField";
+import CoordinatesInput from "./CoordinatesInput";
+import ToggleAdvancedOptions from "./ToggleAdvancedOptions";
+import ShareDesignLink from "./ShareDesignLink";
 
 type LocationType =
   | "North Pole"
@@ -142,120 +21,95 @@ type LocationType =
   | "Current Location"
   | "Custom Location";
 
-const h1Style = {
-  fontSize: "2.5rem",
-  marginBottom: "10px",
+const h1Style = { fontSize: "2.5rem", marginBottom: "10px" };
+const h2Style = { fontSize: "1.5rem", marginTop: "5px", marginBottom: "5px" };
+const h3Style = { fontSize: "1rem", marginTop: "5px", marginBottom: "5px" };
+
+const sameCoordinates = (a: GlobalCoordinates, b: GlobalCoordinates) =>
+  Math.abs(a.latitude - b.latitude) < 0.005 &&
+  Math.abs(a.longitude - b.longitude) < 0.005;
+
+/** Which preset, if any, the current coordinates correspond to. */
+const locationTypeFor = (coordinates: GlobalCoordinates): LocationType => {
+  if (sameCoordinates(coordinates, northPole)) return "North Pole";
+  if (sameCoordinates(coordinates, southPole)) return "South Pole";
+  return "Custom Location";
 };
-
-const h2Style = {
-  fontSize: "1.5rem",
-  marginTop: "5px",
-  marginBottom: "5px",
-};
-
-const h3Style = {
-  fontSize: "1rem",
-  marginTop: "5px",
-  marginBottom: "5px",
-};
-
-interface ToggleAdvancedOptionsProps {
-  showAdvancedOptions: boolean;
-  setShowAdvancedOptions: React.Dispatch<React.SetStateAction<boolean>>;
-}
-
-const ToggleAdvancedOptions: React.FC<ToggleAdvancedOptionsProps> = ({
-  showAdvancedOptions,
-  setShowAdvancedOptions,
-}) => (
-  <button
-    type="button"
-    aria-expanded={showAdvancedOptions}
-    style={{
-      backgroundColor: "transparent",
-      color: "white",
-      padding: "10px 0",
-      border: "none",
-      cursor: "pointer",
-      marginTop: "5px",
-      marginBottom: "0px",
-      display: "flex",
-      alignItems: "center",
-      fontSize: "1.25rem",
-      fontWeight: 600,
-      borderBottom: showAdvancedOptions ? "1px solid white" : "none",
-      borderRadius: 0,
-      width: "100%",
-      textAlign: "left",
-    }}
-    onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
-  >
-    {showAdvancedOptions ? "Hide Advanced Options" : "Show Advanced Options"}
-    <span
-      aria-hidden="true"
-      style={{
-        marginLeft: "10px",
-        transform: showAdvancedOptions ? "rotate(180deg)" : "rotate(0deg)",
-        transition: "transform 0.3s",
-      }}
-    >
-      ▼
-    </span>
-  </button>
-);
 
 const problemFor = (
   problems: DesignProblem[],
   field: DesignProblem["field"]
 ) => problems.find((problem) => problem.field === field)?.message;
 
-const Design: React.FC<PatternProps> = ({
-  setStitches,
-  orientationParameters,
-  setOrientationParameters,
-}) => {
+const Design: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [stitchesPerRow, setStitchesPerRow] = useState(defaultStitchesPerRow);
-  const [numberOfRows, setNumberOfRows] = useState(defaultNumberOfRows);
-  const [locationType, setLocationType] = useState<LocationType>("North Pole");
-  const [decreaseMethod, setDecreaseMethod] =
-    useState<DecreaseMethod>("Pyramidal");
+  /*
+   * The design is read straight from the URL rather than mirrored into local
+   * state. Keeping a copy meant an incoming link was overwritten by whatever
+   * had been typed earlier, because the copy was only ever seeded once.
+   */
+  const design = useMemo(
+    () => designFromSearchParams(searchParams),
+    [searchParams]
+  );
+  const params = useMemo(() => designToSearchParams(design), [design]);
+
+  const [locationType, setLocationType] = useState<LocationType>(() =>
+    locationTypeFor(design.orientation.coordinates)
+  );
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [showProblems, setShowProblems] = useState(false);
 
+  // Fill in a bare /design URL so it is shareable without having to touch a
+  // field first. Replace rather than push, so editing does not fill the back
+  // button with intermediate states.
+  useEffect(() => {
+    if (searchParams.toString() === params.toString()) return;
+    setSearchParams(params, { replace: true });
+  }, [searchParams, params, setSearchParams]);
+
   const problems = useMemo(
-    () => validateDesign(stitchesPerRow, numberOfRows, decreaseMethod),
-    [stitchesPerRow, numberOfRows, decreaseMethod]
+    () =>
+      validateDesign(
+        design.stitchesPerRow,
+        design.numberOfRows,
+        design.decreaseMethod
+      ),
+    [design]
   );
 
-  const handleLocationChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedLocation = e.target.value;
-    setLocationType(selectedLocation as LocationType);
+  const update = (changes: Partial<HatDesign>) =>
+    setSearchParams(designToSearchParams({ ...design, ...changes }), {
+      replace: true,
+    });
 
-    switch (selectedLocation) {
+  const updateOrientation = (
+    changes: Partial<HatDesign["orientation"]>
+  ) => update({ orientation: { ...design.orientation, ...changes } });
+
+  const setCoordinates = (coordinates: GlobalCoordinates) =>
+    updateOrientation({ coordinates });
+
+  const handleLocationChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selected = e.target.value as LocationType;
+    setLocationType(selected);
+
+    switch (selected) {
       case "North Pole":
-        setOrientationParameters({
-          ...orientationParameters,
-          coordinates: northPole,
-        });
+        setCoordinates(northPole);
         break;
       case "South Pole":
-        setOrientationParameters({
-          ...orientationParameters,
-          coordinates: southPole,
-        });
+        setCoordinates(southPole);
         break;
       case "Current Location":
-        navigator.geolocation.getCurrentPosition((position) => {
-          setOrientationParameters({
-            ...orientationParameters,
-            coordinates: {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-            },
-          });
-        });
+        navigator.geolocation.getCurrentPosition((position) =>
+          setCoordinates({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          })
+        );
         break;
       case "Custom Location":
       default:
@@ -263,23 +117,15 @@ const Design: React.FC<PatternProps> = ({
     }
   };
 
-  const handleDestinationChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setOrientationParameters({
-      ...orientationParameters,
-      targetDestination: e.target.value as DestinationType,
-    });
-  };
-
-  const handleViewAndColour = () => {
+  const handleKnitAndDye = () => {
     if (problems.length > 0) {
       setShowProblems(true);
-      // The pyramidal rule lives under advanced options, so open it to show
+      // The decrease rule lives under advanced options, so open it to show
       // the user where the fix is.
       setShowAdvancedOptions(true);
       return;
     }
-    setStitches(getStitches(stitchesPerRow, numberOfRows, decreaseMethod));
-    navigate("/render");
+    navigate(`/render?${params.toString()}`);
   };
 
   return (
@@ -288,23 +134,23 @@ const Design: React.FC<PatternProps> = ({
       <h2 style={h2Style}>Set Up Your Stitches</h2>
       <InputField
         label="Stitches per row"
-        value={stitchesPerRow}
-        valueSetter={setStitchesPerRow}
+        value={design.stitchesPerRow}
+        valueSetter={(stitchesPerRow) => update({ stitchesPerRow })}
         problem={
           showProblems ? problemFor(problems, "stitchesPerRow") : undefined
         }
       />
       <InputField
         label="Number of rows before decreasing"
-        value={numberOfRows}
-        valueSetter={setNumberOfRows}
+        value={design.numberOfRows}
+        valueSetter={(numberOfRows) => update({ numberOfRows })}
         problem={showProblems ? problemFor(problems, "numberOfRows") : undefined}
       />
 
       <div
         style={{
           overflow: "hidden",
-          maxHeight: showAdvancedOptions ? "1000px" : "0",
+          maxHeight: showAdvancedOptions ? "1200px" : "0",
           opacity: showAdvancedOptions ? 1 : 0,
           transition: "max-height 0.5s ease-in-out, opacity 0.5s ease-in-out",
         }}
@@ -313,9 +159,9 @@ const Design: React.FC<PatternProps> = ({
         <h3 style={h3Style}>Choose a Decrease Method</h3>
         <div style={{ marginBottom: "10px" }}>
           <select
-            value={decreaseMethod}
+            value={design.decreaseMethod}
             onChange={(e) =>
-              setDecreaseMethod(e.target.value as DecreaseMethod)
+              update({ decreaseMethod: e.target.value as DecreaseMethod })
             }
           >
             <option value="Hemispherical">Hemispherical</option>
@@ -333,15 +179,22 @@ const Design: React.FC<PatternProps> = ({
           </select>
         </div>
         <CoordinatesInput
-          orientationParameters={orientationParameters}
-          setOrientationParameters={setOrientationParameters}
-          disabled={locationType !== "Custom Location"}
+          coordinates={design.orientation.coordinates}
+          setCoordinates={(coordinates) => {
+            setCoordinates(coordinates);
+            setLocationType(locationTypeFor(coordinates));
+          }}
+          disabled={false}
         />
         <h3 style={h3Style}>Where Should This Point End Up?</h3>
         <div style={{ marginBottom: "10px" }}>
           <select
-            value={orientationParameters.targetDestination}
-            onChange={handleDestinationChange}
+            value={design.orientation.targetDestination}
+            onChange={(e) =>
+              updateOrientation({
+                targetDestination: e.target.value as DestinationType,
+              })
+            }
           >
             <option value="crown">The crown (top) of your hat</option>
             <option value="front">The front of your hat</option>
@@ -353,12 +206,9 @@ const Design: React.FC<PatternProps> = ({
         <label>
           <input
             type="checkbox"
-            checked={orientationParameters.displayNewZealand}
+            checked={design.orientation.displayNewZealand}
             onChange={(e) =>
-              setOrientationParameters({
-                ...orientationParameters,
-                displayNewZealand: e.target.checked,
-              })
+              updateOrientation({ displayNewZealand: e.target.checked })
             }
             style={{ marginRight: "5px" }}
           />
@@ -379,10 +229,11 @@ const Design: React.FC<PatternProps> = ({
           borderRadius: "4px",
           cursor: "pointer",
         }}
-        onClick={handleViewAndColour}
+        onClick={handleKnitAndDye}
       >
         Knit and Dye
       </button>
+      <ShareDesignLink />
     </div>
   );
 };
