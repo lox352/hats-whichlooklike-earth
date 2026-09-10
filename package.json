@@ -1,28 +1,25 @@
 {
-  "name": "space-craft",
+  "name": "hats-which-look-like-earth",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
     "lint": "eslint .",
     "preview": "vite preview"
   },
-  "homepage": "hats.whichlooklike.earth",
+  "homepage": "https://hats.whichlooklike.earth",
   "dependencies": {
     "@react-three/drei": "^9.118.0",
     "@react-three/fiber": "^8.17.10",
     "@react-three/rapier": "^1.5.0",
-    "@turf/turf": "^7.1.0",
-    "@types/react-color": "^3.0.12",
-    "@vitejs/plugin-react-swc": "^3.7.2",
-    "3d-force-graph": "^1.73.6",
     "geotiff": "^2.1.3",
     "react": "^18.3.1",
-    "react-color": "^2.19.3",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.1.0",
     "seedrandom": "^3.0.5",
@@ -30,17 +27,24 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.3",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@types/seedrandom": "^3.0.8",
     "@types/three": "^0.170.0",
+    "@vitejs/plugin-react-swc": "^3.7.2",
+    "@vitest/coverage-v8": "^5.0.0",
     "eslint": "^9.15.0",
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.14",
     "gh-pages": "^6.2.0",
     "globals": "^15.12.0",
+    "jsdom": "^29.1.1",
     "typescript": "~5.6.2",
     "typescript-eslint": "^8.15.0",
-    "vite": "^6.0.1"
-  }
+    "vite": "^6.0.1",
+    "vitest": "^5.0.0"
+  },
+  "description": "Design and knit a hat which looks like Earth."
 }
