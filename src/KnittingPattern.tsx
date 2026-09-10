@@ -6,6 +6,8 @@ import "./KnittingPattern.css";
 interface KnittingPatternProps {
   stitches: Stitch[];
   progress: number;
+  /** Mark the next stitch to work and keep it in view. */
+  followProgress?: boolean;
 }
 
 const cellSize = 10;
@@ -63,9 +65,11 @@ const StitchBox: React.FC<{
   numRows: number;
   numCols: number;
   completed: boolean;
-}> = React.memo(({ stitch, position, numRows, numCols, completed }) => (
+  isNext?: boolean;
+}> = React.memo(({ stitch, position, numRows, numCols, completed, isNext }) => (
   <div
     id={`stitch-${stitch.id}-row-${position.row}-col-${position.col}`}
+    data-next-stitch={isNext ? "true" : undefined}
     style={{
       gridRow: numRows + position.row,
       gridColumn: numCols + position.col,
@@ -74,8 +78,14 @@ const StitchBox: React.FC<{
       borderLeftWidth: (position.col - 1) % 5 === 0 ? "2px" : "1px",
       borderTopWidth: (position.row - 1) % 5 === 0 ? "2px" : "1px",
       textAlign: "center",
-      position: "relative",
+      position: isNext ? "sticky" : "relative",
       opacity: completed ? 0.4 : 1,
+      // A ring on the next stitch, drawn over its neighbours so it reads
+      // clearly against any yarn colour.
+      boxShadow: isNext
+        ? "0 0 0 2px #fff, 0 0 0 4px #111, 0 0 8px 3px rgba(255,255,255,0.5)"
+        : undefined,
+      zIndex: isNext ? 3 : undefined,
     }}
   >
     {stitch.type === "k2tog" && (
@@ -136,7 +146,28 @@ const StitchBox: React.FC<{
 const KnittingPattern: React.FC<KnittingPatternProps> = ({
   stitches,
   progress,
+  followProgress = false,
 }) => {
+  const gridRef = React.useRef<HTMLDivElement>(null);
+  const nextStitchId = followProgress ? progress + 1 : undefined;
+
+  // Keep the stitch being worked on screen, so the chart follows the knitter
+  // rather than having to be hunted for.
+  React.useEffect(() => {
+    if (nextStitchId === undefined) return;
+    const grid = gridRef.current;
+    const cell = grid?.querySelector<HTMLElement>('[data-next-stitch="true"]');
+    if (!grid || !cell) return;
+    const target =
+      cell.offsetLeft - grid.clientWidth / 2 + cell.offsetWidth / 2;
+    grid.scrollTo({
+      left: Math.max(target, 0),
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+    });
+  }, [nextStitchId]);
+
   const filteredStitches = useMemo(
     () => stitches.filter((stitch) => stitch.id !== 0),
     [stitches]
@@ -155,6 +186,7 @@ const KnittingPattern: React.FC<KnittingPatternProps> = ({
     <div>
       <div
         id="printable-section"
+        ref={gridRef}
         style={{
           display: "grid",
           gridTemplateRows: `repeat(${numRows + 1}, ${cellSize}px)`,
@@ -177,6 +209,7 @@ const KnittingPattern: React.FC<KnittingPatternProps> = ({
               numRows={numRows}
               numCols={numCols}
               completed={stitch.id <= progress}
+              isNext={stitch.id === nextStitchId}
             />
           );
         })}

@@ -1,0 +1,151 @@
+.knitting-panel {
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(to top, rgb(20, 20, 20) 70%, rgba(20, 20, 20, 0.92));
+  border-top: 1px solid #333;
+  padding: 14px 0 10px;
+  margin-top: 10px;
+}
+
+.knitting-where {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 12px;
+}
+
+.knitting-where strong {
+  font-size: 1.45rem;
+  font-weight: 600;
+}
+
+.knitting-where .knitting-label {
+  opacity: 0.6;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-right: 6px;
+}
+
+/* The run to knit next: the one instruction that matters in colourwork. */
+.knitting-run {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.knitting-swatch {
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  flex: none;
+}
+
+.knitting-run-text {
+  font-size: 1.1rem;
+}
+
+.knitting-run-text strong {
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.knitting-upcoming {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 0.85rem;
+  opacity: 0.75;
+  flex-wrap: wrap;
+}
+
+.knitting-upcoming-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  display: inline-block;
+  vertical-align: -1px;
+  margin-right: 4px;
+}
+
+.knitting-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+
+.knitting-button {
+  border: 1px solid #3a3a3a;
+  background: #262626;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  padding: 10px 14px;
+}
+
+.knitting-button:hover:not(:disabled) {
+  border-color: #6c7ae0;
+}
+
+.knitting-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* One large target, because this is 95% of what you press. */
+.knitting-button-primary {
+  flex: 1 1 190px;
+  min-height: 62px;
+  font-size: 1.15rem;
+  font-weight: 600;
+  background: #2f6f4f;
+  border-color: #2f6f4f;
+}
+
+.knitting-button-run {
+  flex: 1 1 190px;
+  min-height: 62px;
+  font-size: 1rem;
+  font-weight: 600;
+  background: #3f51b5;
+  border-color: #3f51b5;
+}
+
+.knitting-progress-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: #2a2a2a;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.knitting-progress-fill {
+  height: 100%;
+  background: linear-gradient(to right, #2f6f4f, #6c7ae0);
+  transition: width 0.25s ease-out;
+}
+
+.knitting-hint {
+  font-size: 0.8rem;
+  opacity: 0.55;
+  margin-top: 10px;
+}
+
+.knitting-finished {
+  font-size: 1.1rem;
+  padding: 10px 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .knitting-progress-fill {
+    transition: none;
+  }
+}
