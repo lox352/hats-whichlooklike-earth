@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useId, useRef } from "react";
 import Button from "./Button";
 import "./Dialog.css";
 
@@ -31,6 +31,12 @@ const Dialog: React.FC<DialogProps> = ({
   children,
 }) => {
   const ref = useRef<HTMLDialogElement>(null);
+  /*
+   * Every dialog on a page is mounted whether or not it is open, so a fixed id
+   * here would be duplicated and the accessible name would point at whichever
+   * happened to come first in the DOM.
+   */
+  const titleId = useId();
 
   useEffect(() => {
     const element = ref.current;
@@ -52,7 +58,7 @@ const Dialog: React.FC<DialogProps> = ({
   }, [onCancel]);
 
   return (
-    <dialog className="dialog" ref={ref} aria-labelledby="dialog-title">
+    <dialog className="dialog" ref={ref} aria-labelledby={titleId}>
       <form
         method="dialog"
         onSubmit={(event) => {
@@ -61,7 +67,7 @@ const Dialog: React.FC<DialogProps> = ({
         }}
       >
         <div className="dialog-body">
-          <h2 className="dialog-title" id="dialog-title">
+          <h2 className="dialog-title" id={titleId}>
             {title}
           </h2>
           {text && <p className="dialog-text">{text}</p>}
