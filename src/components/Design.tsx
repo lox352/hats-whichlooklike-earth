@@ -15,6 +15,9 @@ import CoordinatesInput from "./CoordinatesInput";
 import ToggleAdvancedOptions from "./ToggleAdvancedOptions";
 import ShareDesignLink from "./ShareDesignLink";
 import PlaceSearch from "./PlaceSearch";
+import SizeCalculator from "./SizeCalculator";
+import { Gauge } from "../helpers/sizing";
+import { readGauge } from "../helpers/gauge-preference";
 
 type LocationType =
   | "North Pole"
@@ -62,6 +65,7 @@ const Design: React.FC = () => {
   );
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [showProblems, setShowProblems] = useState(false);
+  const [gauge, setGauge] = useState<Gauge>(() => readGauge());
 
   // Fill in a bare /design URL so it is shareable without having to touch a
   // field first. Replace rather than push, so editing does not fill the back
@@ -133,6 +137,17 @@ const Design: React.FC = () => {
     <div style={{ textAlign: "left", padding: "20px" }}>
       <h1 style={h1Style}>Design</h1>
       <h2 style={h2Style}>Set Up Your Stitches</h2>
+      <SizeCalculator
+        gauge={gauge}
+        setGauge={setGauge}
+        stitchesPerRow={design.stitchesPerRow}
+        numberOfRows={design.numberOfRows}
+        decreaseMethod={design.decreaseMethod}
+        onSize={(stitchesPerRow, numberOfRows) => {
+          setShowProblems(false);
+          update({ stitchesPerRow, numberOfRows });
+        }}
+      />
       <InputField
         label="Stitches per row"
         value={design.stitchesPerRow}
