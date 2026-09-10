@@ -9,6 +9,7 @@ import {
   Gauge,
   hatHeightFromArc,
   headFittedBy,
+  negativeEase,
   isValidGauge,
   stitchesPerRowFor,
   totalHeightFor,
@@ -86,12 +87,25 @@ const SizeCalculator: React.FC<SizeCalculatorProps> = ({
   const finishedCircumference = gaugeUsable
     ? round1(circumferenceFor(stitchesPerRow, gauge))
     : null;
-  const fitsHead = gaugeUsable ? round1(headFittedBy(stitchesPerRow, gauge)) : null;
+  const fitsHead = gaugeUsable
+    ? round1(headFittedBy(stitchesPerRow, gauge))
+    : null;
+
   const finishedHeight = gaugeUsable
     ? round1(totalHeightFor(stitchesPerRow, numberOfRows, gauge, decreaseMethod))
     : null;
   const crownRows = crownRowsFor(stitchesPerRow, decreaseMethod);
   const totalRows = totalRowsFor(stitchesPerRow, numberOfRows, decreaseMethod);
+
+  /*
+   * The ease, as a percentage, worked out from the constant rather than
+   * written into the sentence.
+   *
+   * Without it the summary read as a contradiction: ask for a 57cm head and
+   * it answers "a hat 52.2cm around", with nothing to say why those are the
+   * same hat.
+   */
+  const easePercentage = Math.round((1 - negativeEase) * 100);
 
   return (
     <div className="design-card">
@@ -172,10 +186,11 @@ const SizeCalculator: React.FC<SizeCalculatorProps> = ({
         {gaugeUsable ? (
           <>
             {stitchesPerRow} stitches and {numberOfRows} rows of body makes a
-            hat about <strong>{finishedCircumference}cm</strong> around and{" "}
-            <strong>{finishedHeight}cm</strong> tall, which fits a head of
-            roughly <strong>{fitsHead}cm</strong>. The crown adds {crownRows}{" "}
-            rows on top of the body, {totalRows} in all.
+            hat <strong>{finishedCircumference}cm</strong> around unstretched
+            and <strong>{finishedHeight}cm</strong> tall. Knitting it{" "}
+            {easePercentage}% smaller than the head is what makes it grip, so
+            it fits a head of roughly <strong>{fitsHead}cm</strong>. The crown
+            adds {crownRows} rows on top of the body, {totalRows} in all.
           </>
         ) : (
           "Enter your gauge above to see what size this makes."
