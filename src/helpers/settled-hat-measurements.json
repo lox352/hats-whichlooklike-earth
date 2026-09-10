@@ -1,0 +1,218 @@
+[
+  {
+    "sts": 60,
+    "bodyRows": 10,
+    "radius": 19.1,
+    "height": 20.56,
+    "minY": 0.03,
+    "crown": "Pyramidal"
+  },
+  {
+    "sts": 60,
+    "bodyRows": 20,
+    "radius": 19.1,
+    "height": 38.67,
+    "minY": 0.03,
+    "crown": "Pyramidal"
+  },
+  {
+    "sts": 60,
+    "bodyRows": 31,
+    "radius": 19.1,
+    "height": 57.54,
+    "minY": 0.03,
+    "crown": "Pyramidal"
+  },
+  {
+    "sts": 60,
+    "bodyRows": 45,
+    "radius": 19.1,
+    "height": 80.79,
+    "minY": 0.03,
+    "crown": "Pyramidal"
+  },
+  {
+    "sts": 80,
+    "bodyRows": 10,
+    "radius": 25.46,
+    "height": 20.85,
+    "minY": 0.03,
+    "crown": "Pyramidal"
+  },
+  {
+    "sts": 80,
+    "bodyRows": 20,
+    "radius": 25.46,
+    "height": 39.81,
+    "minY": 0.03,
+    "crown": "Pyramidal"
+  },
+  {
+    "sts": 80,
+    "bodyRows": 31,
+    "radius": 25.46,
+    "height": 59.08,
+    "minY": 0.03,
+    "crown": "Pyramidal"
+  },
+  {
+    "sts": 80,
+    "bodyRows": 45,
+    "radius": 25.46,
+    "height": 82.7,
+    "minY": 0.03,
+    "crown": "Pyramidal"
+  },
+  {
+    "sts": 100,
+    "bodyRows": 10,
+    "radius": 31.83,
+    "height": 20.77,
+    "minY": 0.02,
+    "crown": "Pyramidal"
+  },
+  {
+    "sts": 100,
+    "bodyRows": 20,
+    "radius": 31.83,
+    "height": 40.64,
+    "minY": 0.02,
+    "crown": "Pyramidal"
+  },
+  {
+    "sts": 100,
+    "bodyRows": 31,
+    "radius": 31.83,
+    "height": 60.33,
+    "minY": 0.02,
+    "crown": "Pyramidal"
+  },
+  {
+    "sts": 100,
+    "bodyRows": 45,
+    "radius": 31.83,
+    "height": 84.11,
+    "minY": 0.02,
+    "crown": "Pyramidal"
+  },
+  {
+    "sts": 120,
+    "bodyRows": 10,
+    "radius": 38.2,
+    "height": 20.24,
+    "minY": 0.02,
+    "crown": "Pyramidal"
+  },
+  {
+    "sts": 120,
+    "bodyRows": 20,
+    "radius": 38.2,
+    "height": 41.28,
+    "minY": 0.02,
+    "crown": "Pyramidal"
+  },
+  {
+    "sts": 120,
+    "bodyRows": 31,
+    "radius": 38.2,
+    "height": 61.52,
+    "minY": 0.02,
+    "crown": "Pyramidal"
+  },
+  {
+    "sts": 120,
+    "bodyRows": 45,
+    "radius": 38.2,
+    "height": 85.51,
+    "minY": 0.02,
+    "crown": "Pyramidal"
+  },
+  {
+    "sts": 160,
+    "bodyRows": 10,
+    "radius": 50.93,
+    "height": 18.44,
+    "minY": 0.01,
+    "crown": "Pyramidal"
+  },
+  {
+    "sts": 160,
+    "bodyRows": 20,
+    "radius": 50.93,
+    "height": 42.15,
+    "minY": 0.01,
+    "crown": "Pyramidal"
+  },
+  {
+    "sts": 160,
+    "bodyRows": 31,
+    "radius": 50.93,
+    "height": 63.31,
+    "minY": 0.01,
+    "crown": "Pyramidal"
+  },
+  {
+    "sts": 160,
+    "bodyRows": 45,
+    "radius": 50.93,
+    "height": 87.88,
+    "minY": 0.01,
+    "crown": "Pyramidal"
+  },
+  {
+    "sts": 200,
+    "bodyRows": 10,
+    "radius": 63.66,
+    "height": 16.15,
+    "minY": 0.01,
+    "crown": "Pyramidal"
+  },
+  {
+    "sts": 200,
+    "bodyRows": 20,
+    "radius": 63.66,
+    "height": 42.55,
+    "minY": 0.01,
+    "crown": "Pyramidal"
+  },
+  {
+    "sts": 200,
+    "bodyRows": 31,
+    "radius": 63.66,
+    "height": 64.88,
+    "minY": 0.01,
+    "crown": "Pyramidal"
+  },
+  {
+    "sts": 200,
+    "bodyRows": 45,
+    "radius": 63.66,
+    "height": 90.2,
+    "minY": 0.01,
+    "crown": "Pyramidal"
+  },
+  {
+    "sts": 60,
+    "bodyRows": 20,
+    "radius": 19.1,
+    "height": 41.44,
+    "minY": 0.03,
+    "crown": "Hemispherical"
+  },
+  {
+    "sts": 120,
+    "bodyRows": 31,
+    "radius": 38.2,
+    "height": 66.3,
+    "minY": 0.02,
+    "crown": "Hemispherical"
+  },
+  {
+    "sts": 160,
+    "bodyRows": 31,
+    "radius": 50.93,
+    "height": 71.61,
+    "minY": 0.01,
+    "crown": "Hemispherical"
+  }
+]

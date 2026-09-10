@@ -1,18 +1,13 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Stitch } from "../types/Stitch";
 import { Canvas } from "@react-three/fiber";
 import { Physics } from "@react-three/rapier";
 import { OrbitControls } from "@react-three/drei";
 import StitchPhysics from "./StitchPhysics";
 import Settler from "./Settler";
-import FitToHat, { HatBounds, OrbitLike } from "./FitToHat";
-import * as THREE from "three";
-import {
-  adjacentStitchDistance,
-  settleTimeStep,
-  solverIterations,
-} from "../constants";
-import { countCastOnStitches } from "../helpers/stitches";
+import FrameHat, { OrbitLike } from "./FrameHat";
+import { settleTimeStep, solverIterations } from "../constants";
+import { predictHatShape } from "../helpers/hat-shape";
 import {
   defaultOrientationParameters,
   OrientationParameters,
@@ -43,38 +38,24 @@ const ChainModel: React.FC<ChainModelProps> = ({
     stitchesRef.current = stitches;
   }, [stitches]);
 
-  /*
-   * Where the camera ends up is decided by FitToHat, from the hat's measured
-   * bounding box. This is only a starting direction to look from, so the
-   * first frame is not staring at the inside of the brim.
-   */
-  const bounds = useRef<HatBounds>({
-    min: new THREE.Vector3(),
-    max: new THREE.Vector3(),
-    valid: false,
-  });
   const controls = useRef<OrbitLike | null>(null);
 
   /*
-   * A first guess at where to stand, from the cast-on radius. FitToHat works
-   * out the real framing from the settled hat and eases the camera over, so
-   * this only has to be in the right neighbourhood: start it somewhere silly
-   * and the opening ease becomes a long swoop.
-   *
-   * The multiplier is the ratio the fit converges to for a hat of these
-   * proportions, measured rather than derived.
+   * How big the hat is going to be, worked out before it settles, so the
+   * camera can be placed once and then left alone. See helpers/hat-shape.
    */
-  const initialCamera = useMemo<[number, number, number]>(() => {
-    const stitchesPerRow = Math.max(countCastOnStitches(stitches), 1);
-    const radius = (stitchesPerRow * adjacentStitchDistance) / (2 * Math.PI);
-    const distance = Math.max(radius * 4.6, 40);
-    // Slightly above the hat, looking down at it.
-    return [-distance * 0.74, distance * 0.42, distance * 0.5];
-  }, [stitches]);
+  const shape = useMemo(() => predictHatShape(stitches), [stitches]);
+
+  /*
+   * The hat turns slowly on its own until the first time anyone touches it,
+   * and then never again. Auto-rotation that resumes after you let go fights
+   * whoever is trying to look at something.
+   */
+  const [touched, setTouched] = useState(false);
 
   return (
     <Canvas
-      camera={{ position: initialCamera, fov: 38, near: 0.5, far: 4000 }}
+      camera={{ fov: 38, near: 0.5, far: 4000 }}
       /*
        * Transparent, so the stage behind it provides the ground and the hat
        * sits on paper in light mode and on ink in dark mode. The canvas used
@@ -99,17 +80,18 @@ const ChainModel: React.FC<ChainModelProps> = ({
       <directionalLight position={[192, -48, -144]} intensity={0.35} />
       <directionalLight position={[48, 72, -240]} intensity={0.5} />
 
+      <FrameHat shape={shape} controls={controls} />
+
       <OrbitControls
         ref={controls as never}
-        enabled={!simulationActive}
+        // Turnable from the first frame, including while the hat settles.
         enableDamping
         dampingFactor={0.08}
         rotateSpeed={0.65}
         zoomSpeed={0.7}
-        // A slow turn once it is finished, so the hat shows itself off; any
-        // interaction stops it, and it never spins while settling.
-        autoRotate={!simulationActive}
+        autoRotate={!touched}
         autoRotateSpeed={0.35}
+        onStart={() => setTouched(true)}
         makeDefault
       />
       <Physics
@@ -122,11 +104,6 @@ const ChainModel: React.FC<ChainModelProps> = ({
          */
         paused
       >
-        <FitToHat
-          bounds={bounds}
-          settled={!simulationActive}
-          controls={controls}
-        />
         <Settler active={simulationActive} />
         <StitchPhysics
           stitchesRef={stitchesRef}
@@ -136,7 +113,6 @@ const ChainModel: React.FC<ChainModelProps> = ({
           setSimulationActive={setSimulationActive}
           onAnyStitchRendered={onAnyStitchRendered}
           onDyeingComplete={onDyeingComplete}
-          bounds={bounds}
         />
       </Physics>
     </Canvas>
