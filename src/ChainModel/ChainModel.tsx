@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { Stitch } from "../types/Stitch";
 import { Canvas } from "@react-three/fiber";
 import { Physics } from "@react-three/rapier";
@@ -7,7 +7,12 @@ import StitchPhysics from "./StitchPhysics";
 import Settler from "./Settler";
 import FitToHat, { HatBounds, OrbitLike } from "./FitToHat";
 import * as THREE from "three";
-import { settleTimeStep, solverIterations } from "../constants";
+import {
+  adjacentStitchDistance,
+  settleTimeStep,
+  solverIterations,
+} from "../constants";
+import { countCastOnStitches } from "../helpers/stitches";
 import {
   defaultOrientationParameters,
   OrientationParameters,
@@ -50,9 +55,26 @@ const ChainModel: React.FC<ChainModelProps> = ({
   });
   const controls = useRef<OrbitLike | null>(null);
 
+  /*
+   * A first guess at where to stand, from the cast-on radius. FitToHat works
+   * out the real framing from the settled hat and eases the camera over, so
+   * this only has to be in the right neighbourhood: start it somewhere silly
+   * and the opening ease becomes a long swoop.
+   *
+   * The multiplier is the ratio the fit converges to for a hat of these
+   * proportions, measured rather than derived.
+   */
+  const initialCamera = useMemo<[number, number, number]>(() => {
+    const stitchesPerRow = Math.max(countCastOnStitches(stitches), 1);
+    const radius = (stitchesPerRow * adjacentStitchDistance) / (2 * Math.PI);
+    const distance = Math.max(radius * 4.6, 40);
+    // Slightly above the hat, looking down at it.
+    return [-distance * 0.74, distance * 0.42, distance * 0.5];
+  }, [stitches]);
+
   return (
     <Canvas
-      camera={{ position: [-90, 55, 62], fov: 38, near: 0.5, far: 4000 }}
+      camera={{ position: initialCamera, fov: 38, near: 0.5, far: 4000 }}
       /*
        * Transparent, so the stage behind it provides the ground and the hat
        * sits on paper in light mode and on ink in dark mode. The canvas used

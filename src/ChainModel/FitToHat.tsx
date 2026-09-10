@@ -31,6 +31,16 @@ const centre = new THREE.Vector3();
 const size = new THREE.Vector3();
 const projected = new THREE.Vector3();
 const direction = new THREE.Vector3();
+const desiredPosition = new THREE.Vector3();
+const cameraWas = new THREE.Vector3();
+const targetWas = new THREE.Vector3();
+
+/**
+ * How quickly the camera closes on a new framing, as a fraction of the
+ * remaining distance per second. The hat used to snap into place the moment it
+ * settled, which read as a jolt.
+ */
+const glideRate = 6;
 /*
  * Points that bound the hat's silhouette: the crown, and the brim ring at
  * eight compass points.
@@ -65,6 +75,15 @@ const FitToHat: React.FC<FitToHatProps> = ({ bounds, settled, controls }) => {
   const viewport = useThree((state) => state.size);
   const fitted = useRef("");
   const pending = useRef(true);
+  /*
+   * Where the camera is heading. Set when a fit is worked out, then closed on
+   * over the following frames rather than jumped to. Null when there is
+   * nowhere to go.
+   */
+  const goal = useRef<{
+    position: THREE.Vector3;
+    target: THREE.Vector3;
+  } | null>(null);
 
   // Ask for a refit when the hat changes state or the stage is resized.
   useEffect(() => {
@@ -76,7 +95,32 @@ const FitToHat: React.FC<FitToHatProps> = ({ bounds, settled, controls }) => {
    * the instanced renderer has run, which is after the effects for that render
    * have already fired.
    */
-  useFrame(() => {
+  useFrame((_, delta) => {
+    // Close on the framing worked out earlier.
+    if (goal.current) {
+      const orbit = controls.current;
+      // Frame-rate independent easing, clamped so a long frame cannot overshoot.
+      const step = Math.min(1 - Math.exp(-glideRate * delta), 1);
+      camera.position.lerp(goal.current.position, step);
+      if (orbit) {
+        orbit.target.lerp(goal.current.target, step);
+        orbit.update();
+      } else {
+        camera.lookAt(goal.current.target);
+      }
+      const closeEnough =
+        camera.position.distanceToSquared(goal.current.position) <
+        goal.current.position.lengthSq() * 1e-6;
+      if (closeEnough) {
+        camera.position.copy(goal.current.position);
+        if (orbit) {
+          orbit.target.copy(goal.current.target);
+          orbit.update();
+        }
+        goal.current = null;
+      }
+    }
+
     if (!pending.current || !bounds.current.valid) return;
 
     const key = `${settled}:${viewport.width}x${viewport.height}`;
@@ -91,6 +135,11 @@ const FitToHat: React.FC<FitToHatProps> = ({ bounds, settled, controls }) => {
 
     const perspective = camera as THREE.PerspectiveCamera;
     const orbit = controls.current;
+
+    // fillAt moves the camera to try each distance, so keep the current view
+    // to glide from afterwards.
+    cameraWas.copy(perspective.position);
+    targetWas.copy(orbit?.target ?? centre);
 
     // Keep the direction the camera is already looking from, just move it.
     direction.copy(perspective.position).sub(orbit?.target ?? centre);
@@ -164,9 +213,28 @@ const FitToHat: React.FC<FitToHatProps> = ({ bounds, settled, controls }) => {
       distance *= fill / wanted;
     }
     fillAt(distance);
+    desiredPosition.copy(camera.position);
 
+    const reducedMotion = window.matchMedia?.(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+
+    if (reducedMotion) {
+      if (orbit) {
+        orbit.target.copy(centre);
+        orbit.update();
+      }
+      return;
+    }
+
+    // Put the camera back where it was and let the glide carry it over.
+    goal.current = {
+      position: desiredPosition.clone(),
+      target: centre.clone(),
+    };
+    camera.position.copy(cameraWas);
     if (orbit) {
-      orbit.target.copy(centre);
+      orbit.target.copy(targetWas);
       orbit.update();
     }
   });

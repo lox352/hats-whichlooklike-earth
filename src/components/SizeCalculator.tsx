@@ -1,15 +1,18 @@
 import React, { useState } from "react";
 import { DecreaseMethod } from "../types/KnittingMachine";
 import {
-  bodyHeightFor,
+  bodyRowsForHeight,
   circumferenceFor,
-  defaultBodyHeight,
+  crownRowsFor,
   defaultHeadCircumference,
+  defaultOverTheTop,
   Gauge,
+  hatHeightFromArc,
   headFittedBy,
   isValidGauge,
-  rowsFor,
   stitchesPerRowFor,
+  totalHeightFor,
+  totalRowsFor,
 } from "../helpers/sizing";
 import { writeGauge } from "../helpers/gauge-preference";
 import Button from "./ui/Button";
@@ -27,18 +30,19 @@ interface SizeCalculatorProps {
 const round1 = (value: number) => Math.round(value * 10) / 10;
 
 /**
- * Works out a stitch count from measurements of a head and of your knitting.
+ * Works out a stitch count and a row count from measurements of a head and of
+ * your knitting.
  *
- * These are two different kinds of number and they used to sit in one
- * undifferentiated row, which made it unclear which described the hat you want
- * and which described your yarn. They are now separated and each says what to
- * measure.
+ * Both measurements are things you can take on a person. The height one is the
+ * tape run from where you want the hat's edge to sit by one ear, over the
+ * crown, to the same point on the other side; half of that is the finished
+ * height of the hat, which is how a beanie is normally specified. It used to
+ * ask for the height of the straight section before the crown, which is a
+ * property of the pattern rather than of anyone's head, and left the crown's
+ * own height unaccounted for.
  *
  * The stitch count remains the real input the pattern is built from; this only
- * means it can be arrived at from a measurement rather than guessed. The
- * rounding is reported rather than hidden, because a pyramidal crown forces the
- * count to a multiple of ten and that can move the finished size by a
- * centimetre or two.
+ * means it can be arrived at from a measurement rather than guessed.
  */
 const SizeCalculator: React.FC<SizeCalculatorProps> = ({
   gauge,
@@ -51,7 +55,7 @@ const SizeCalculator: React.FC<SizeCalculatorProps> = ({
   const [headCircumference, setHeadCircumference] = useState(
     defaultHeadCircumference
   );
-  const [bodyHeight, setBodyHeight] = useState(defaultBodyHeight);
+  const [overTheTop, setOverTheTop] = useState(defaultOverTheTop);
 
   const gaugeUsable = isValidGauge(gauge);
 
@@ -63,9 +67,19 @@ const SizeCalculator: React.FC<SizeCalculatorProps> = ({
 
   const apply = () => {
     if (!gaugeUsable) return;
+    const stitches = stitchesPerRowFor(
+      headCircumference,
+      gauge,
+      decreaseMethod
+    );
     onSize(
-      stitchesPerRowFor(headCircumference, gauge, decreaseMethod),
-      rowsFor(bodyHeight, gauge)
+      stitches,
+      bodyRowsForHeight(
+        hatHeightFromArc(overTheTop),
+        stitches,
+        gauge,
+        decreaseMethod
+      )
     );
   };
 
@@ -74,41 +88,47 @@ const SizeCalculator: React.FC<SizeCalculatorProps> = ({
     : null;
   const fitsHead = gaugeUsable ? round1(headFittedBy(stitchesPerRow, gauge)) : null;
   const finishedHeight = gaugeUsable
-    ? round1(bodyHeightFor(numberOfRows, gauge))
+    ? round1(totalHeightFor(stitchesPerRow, numberOfRows, gauge, decreaseMethod))
     : null;
+  const crownRows = crownRowsFor(stitchesPerRow, decreaseMethod);
+  const totalRows = totalRowsFor(stitchesPerRow, numberOfRows, decreaseMethod);
 
   return (
     <div className="design-card">
       <h3 className="design-card-title">Work out the stitches</h3>
 
       <div className="size-group">
-        <h4 className="size-group-title">The hat you want</h4>
+        <h4 className="size-group-title">The head it is for</h4>
         <p className="size-group-note">
-          Measure the head all the way round, above the ears and across the
-          widest part of the forehead. The height is the straight part of the
-          hat, from the edge of the brim up to where the crown starts
-          decreasing.
+          Round the head, above the ears and across the widest part of the
+          forehead. Then from where you want the hat&rsquo;s edge to sit by one
+          ear, up over the crown, and down to the same point on the other side.
         </p>
         <div className="design-row">
           <NumberField
-            label="Head, around (cm)"
+            label="Around the head (cm)"
             value={headCircumference}
             onChange={setHeadCircumference}
             min={20}
             max={80}
             step={0.5}
-            width="7rem"
+            width="8rem"
           />
           <NumberField
-            label="Hat height (cm)"
-            value={bodyHeight}
-            onChange={setBodyHeight}
-            min={1}
-            max={60}
+            label="Ear to ear, over the top (cm)"
+            value={overTheTop}
+            onChange={setOverTheTop}
+            min={10}
+            max={100}
             step={0.5}
-            width="7rem"
+            width="8rem"
           />
         </div>
+        <p className="design-hint">
+          That makes a hat{" "}
+          <strong>{round1(hatHeightFromArc(overTheTop))}cm</strong> tall, brim
+          edge to crown.
+        </p>
       </div>
 
       <div className="size-group">
@@ -126,7 +146,7 @@ const SizeCalculator: React.FC<SizeCalculatorProps> = ({
             min={1}
             max={80}
             step={0.5}
-            width="7rem"
+            width="8rem"
             invalid={!(gauge.stitchesPer10cm > 0)}
           />
           <NumberField
@@ -136,7 +156,7 @@ const SizeCalculator: React.FC<SizeCalculatorProps> = ({
             min={1}
             max={90}
             step={0.5}
-            width="7rem"
+            width="8rem"
             invalid={!(gauge.rowsPer10cm > 0)}
           />
         </div>
@@ -151,10 +171,11 @@ const SizeCalculator: React.FC<SizeCalculatorProps> = ({
       <p aria-live="polite" className="design-summary">
         {gaugeUsable ? (
           <>
-            {stitchesPerRow} stitches and {numberOfRows} rows makes a hat about{" "}
-            <strong>{finishedCircumference}cm</strong> around and{" "}
-            <strong>{finishedHeight}cm</strong> tall before the crown, which
-            fits a head of roughly <strong>{fitsHead}cm</strong>.
+            {stitchesPerRow} stitches and {numberOfRows} rows of body makes a
+            hat about <strong>{finishedCircumference}cm</strong> around and{" "}
+            <strong>{finishedHeight}cm</strong> tall, which fits a head of
+            roughly <strong>{fitsHead}cm</strong>. The crown adds {crownRows}{" "}
+            rows on top of the body, {totalRows} in all.
           </>
         ) : (
           "Enter your gauge above to see what size this makes."

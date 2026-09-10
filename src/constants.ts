@@ -4,13 +4,15 @@ const adjacentStitchDistance = 2;
 const verticalStitchDistance = 1.6;
 
 /*
- * These are what the default head, height and gauge in helpers/sizing work out
- * to, so "work out my stitches" on a fresh page changes nothing. They used to
- * be 160 and 35, which no realistic gauge produced: pressing the button
- * immediately rewrote 160 as 110. There is a test tying them together.
+ * These are what the default head, arc over the top and gauge in
+ * helpers/sizing work out to, so "work out my stitches" on a fresh page
+ * changes nothing. There is a test tying them together.
+ *
+ * numberOfRows counts only the straight body: the crown adds its own rows on
+ * top, 18 more at this stitch count, for a finished hat of about 19cm.
  */
 const defaultStitchesPerRow = 120;
-const defaultNumberOfRows = 35;
+const defaultNumberOfRows = 31;
 
 /**
  * Settle tuning.

@@ -1,4 +1,10 @@
-import { DecreaseMethod, pyramidalBase } from "../types/KnittingMachine";
+import {
+  DecreaseMethod,
+  minimumNumberOfRows,
+  pyramidalBase,
+} from "../types/KnittingMachine";
+import { getStitches } from "./stitches";
+import { indexRows } from "./knitting-progress";
 
 /**
  * Turns a head measurement and a gauge into a stitch count, and back again.
@@ -28,10 +34,26 @@ export const defaultGauge: Gauge = {
 export const defaultHeadCircumference = 56;
 
 /**
- * Height of the straight part of the hat, brim to where the crown starts, in
- * centimetres. A folded-brim beanie is about this before the shaping begins.
+ * Ear to ear over the crown, in centimetres: the tape run from where the hat's
+ * edge should sit by one ear, up over the top of the head, and down to the same
+ * point on the other side.
+ *
+ * Half of it is the finished height of the hat, brim edge to crown, which is
+ * how a beanie is normally specified. This is the measurement to ask for
+ * because you can take it on a head; "how tall should the straight part be
+ * before the crown starts" is a property of the pattern, not of anyone's head,
+ * and was what this used to ask.
+ *
+ * 38cm suits a typical adult: a 56cm head is about 28cm over the top between
+ * the ears, plus a few centimetres each side to cover them. That gives a 19cm
+ * hat, in the usual 20-23cm band for an adult beanie once a brim is folded.
  */
-export const defaultBodyHeight = 13.5;
+export const defaultOverTheTop = 38;
+
+/** Finished height of the hat, brim edge to crown, from the arc over the head. */
+export const hatHeightFromArc = (overTheTop: number): number =>
+  Math.max(overTheTop, 0) / 2;
+
 
 /**
  * Hats are knitted smaller than the head so they stay on. 10% is the usual
@@ -64,6 +86,81 @@ export const circumferenceFor = (
 /** The height of the straight part of the hat, before decreasing, in cm. */
 export const bodyHeightFor = (numberOfRows: number, gauge: Gauge): number =>
   (numberOfRows / gauge.rowsPer10cm) * 10;
+
+/**
+ * How many rows the crown takes, for a given stitch count and shaping.
+ *
+ * Measured from the knitting machine rather than derived. The pyramidal crown
+ * happens to be linear in the stitch count, but the hemispherical one depends
+ * on a seeded random distribution of decreases and has no tidy closed form, and
+ * a formula for either would silently drift if the shaping ever changed.
+ *
+ * The crown does not depend on how long the body is - verified in the tests -
+ * so it can be measured on a hat knitted with the shortest legal body and then
+ * reused. Memoised, because the answer only changes when the stitch count or
+ * the shaping does.
+ */
+const crownRowCache = new Map<string, number>();
+
+export const crownRowsFor = (
+  stitchesPerRow: number,
+  decreaseMethod: DecreaseMethod
+): number => {
+  const key = `${stitchesPerRow}:${decreaseMethod}`;
+  const cached = crownRowCache.get(key);
+  if (cached !== undefined) return cached;
+
+  let rows = 0;
+  try {
+    const body = minimumNumberOfRows;
+    rows = Math.max(
+      indexRows(getStitches(stitchesPerRow, body, decreaseMethod)).totalRows -
+        body,
+      0
+    );
+  } catch {
+    // An invalid stitch count for this shaping; the design validator reports
+    // that separately, so just claim no crown rather than throwing from here.
+    rows = 0;
+  }
+
+  crownRowCache.set(key, rows);
+  return rows;
+};
+
+/** Total rows in the finished hat: the body plus the crown. */
+export const totalRowsFor = (
+  stitchesPerRow: number,
+  numberOfRows: number,
+  decreaseMethod: DecreaseMethod
+): number => numberOfRows + crownRowsFor(stitchesPerRow, decreaseMethod);
+
+/** Finished height of the hat, brim edge to crown, in cm. */
+export const totalHeightFor = (
+  stitchesPerRow: number,
+  numberOfRows: number,
+  gauge: Gauge,
+  decreaseMethod: DecreaseMethod
+): number =>
+  (totalRowsFor(stitchesPerRow, numberOfRows, decreaseMethod) /
+    gauge.rowsPer10cm) *
+  10;
+
+/**
+ * Rows of body needed for a finished hat of this height, once the crown has
+ * taken its share. Never returns fewer than the machine will accept, so a hat
+ * asked to be shorter than its own crown still knits.
+ */
+export const bodyRowsForHeight = (
+  hatHeight: number,
+  stitchesPerRow: number,
+  gauge: Gauge,
+  decreaseMethod: DecreaseMethod
+): number => {
+  const totalRows = Math.round((hatHeight / 10) * gauge.rowsPer10cm);
+  const crown = crownRowsFor(stitchesPerRow, decreaseMethod);
+  return Math.max(totalRows - crown, minimumNumberOfRows);
+};
 
 /**
  * How many rows to knit before decreasing, for a given body height. The crown
