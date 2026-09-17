@@ -250,3 +250,17 @@
     transition: none;
   }
 }
+
+/*
+ * The country or ocean the next stitch lands on: a place, not a count, so it
+ * takes the whole line rather than being squeezed onto the end of a row of
+ * numbers, where "Democratic Republic of the Congo" would wrap the panel.
+ */
+.knitting-region {
+  flex-basis: 100%;
+}
+
+.knitting-where .knitting-region b {
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+}

@@ -88,6 +88,58 @@
     0 0 10px 3px color-mix(in srgb, var(--ocean) 70%, transparent);
 }
 
+/*
+ * The regions. The globe is tiled, so every stitch is on a country or a named
+ * stretch of water, and the one being looked at is outlined as a single shape
+ * around all its cells rather than as a grid of squares.
+ *
+ * At z-index 2, level with the graticule and above the veil on a knitted
+ * stitch, but below the ring on the next stitch: while you are knitting,
+ * nothing may cover the square you are about to work.
+ */
+.chart-labelled .chart-cell {
+  cursor: crosshair;
+}
+
+.chart-region {
+  z-index: 2;
+  pointer-events: none;
+  fill: none;
+  stroke-linecap: square;
+}
+
+.chart-region-halo {
+  stroke: var(--paper);
+  stroke-width: 3.5;
+  opacity: 0.85;
+}
+
+.chart-region-line {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+.chart-region-caption {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  min-height: 1.6em;
+  margin: 0 0 6px;
+}
+
+.chart-region-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.chart-region-where {
+  color: var(--ink-soft);
+}
+
+.chart-region-count {
+  color: var(--ink-faint);
+}
+
 .chart-label {
   background: var(--paper-sunken);
   color: var(--ink-faint);
@@ -200,6 +252,21 @@
     border: 0.3mm solid #000;
     display: inline-block;
   }
+
+  /* Everywhere the hat is a picture of, under the yarn key it echoes. */
+  .print-region-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1mm 3mm;
+    margin-top: 3mm;
+    font-size: 8pt;
+    color: #333;
+  }
+
+  .print-region-title {
+    font-weight: 600;
+    color: #000;
+  }
 }
 
 /*
@@ -222,4 +289,17 @@
     margin-top: 30px;
     padding-top: 18px;
   }
+}
+
+/* The list of places on the hat, under the button that opens it. */
+.region-index {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  line-height: 1.7;
+  max-width: 62ch;
+  margin: 8px 0 0;
+}
+
+.region-index-name {
+  color: var(--ink);
 }

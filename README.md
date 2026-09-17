@@ -31,6 +31,12 @@ The projection is deliberately in two halves: spherical above the hat's
 equator, cylindrical below it, so the map continues down the sides rather than
 pinching at the brim.
 
+The same pass also records *where* each stitch landed - the country or ocean
+under its centre - so the chart can outline a place and name it, and knitting
+mode can say what you are working through. The label is read from the same
+coordinate as the colour, at the same moment, so the two cannot disagree about
+where a stitch is.
+
 ## Running it
 
 ```bash
@@ -59,5 +65,16 @@ production deploy.**
   reads and writes go through `src/helpers/pattern-storage.ts`, which versions
   the stored shape and migrates older entries on read, so a corrupt or
   outdated entry cannot break the pages that list them.
+- The globe is tiled into countries and oceans, so every stitch is in exactly
+  one. The tiling is burned ahead of time onto the same 1080x540 grid the
+  globe raster is sampled from (`src/assets/region-labels.rle`), from Natural
+  Earth's admin-0 countries at 1:50m and its marine polygons at 1:110m, both
+  public domain; `scripts/region-reference.py` regenerates it, and the tests
+  check it against the source polygons at six thousand points. Countries
+  smaller than a cell - Malta, Monaco, the Maldives - are not on it, and the
+  ragged margin the marine layer leaves along Antarctica is settled by
+  nearness. Where the picture and the label disagree it is at a coastline, or
+  over an ice shelf, where a stitch is white because the shelf is and labelled
+  with the sea beneath it.
 - Sibling branches build the same machinery for different subjects: `space`
   (star charts) and `pictures`.

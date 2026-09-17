@@ -6,6 +6,7 @@ import ChartActions from "./ChartActions";
 import ChartPrintSheet from "./ChartPrintSheet";
 import YarnChoicesEditor from "./YarnChoices";
 import WrittenInstructions from "./WrittenInstructions";
+import RegionIndex from "./RegionIndex";
 import PageLayout from "./ui/PageLayout";
 import Button from "./ui/Button";
 import NameDialog from "./ui/NameDialog";
@@ -98,6 +99,7 @@ const Pattern: React.FC<PatternProps> = ({ stitches }) => {
           than getting on with the knitting, so they sit at the bottom. */}
       <div className="chart-extras screen-only">
         <YarnChoicesEditor yarns={yarns} setYarns={setYarns} />
+        <RegionIndex stitches={charted} />
         <WrittenInstructions stitches={charted} />
         <ChartActions stitches={charted} name="hat-pattern" />
       </div>

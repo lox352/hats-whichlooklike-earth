@@ -77,3 +77,28 @@ describe("chartToSvg", () => {
     expect(svg).toContain("rgb(0,255,0)");
   });
 });
+
+describe("places on the downloaded chart", () => {
+  const labelled = (region: string) =>
+    hat().map((stitch) => ({ ...stitch, region }));
+
+  it("names the places the hat is a picture of", () => {
+    const { svg } = chartToSvg(labelled("FRA"));
+    expect(svg).toContain("<desc>Places on this hat: France</desc>");
+  });
+
+  it("says nothing for a hat charted before labels", () => {
+    expect(chartToSvg(hat()).svg).not.toContain("<desc>");
+  });
+
+  /*
+   * Stitches come back from localStorage, which anyone can edit, so a region
+   * key can be anything at all by the time it reaches this string.
+   */
+  it("escapes a place name that would otherwise break the file", () => {
+    const { svg } = chartToSvg(labelled('Trouble & <script> "x"'));
+    expect(svg).not.toContain("<script>");
+    const parsed = new DOMParser().parseFromString(svg, "image/svg+xml");
+    expect(parsed.getElementsByTagName("parsererror")).toHaveLength(0);
+  });
+});

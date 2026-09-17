@@ -3,6 +3,10 @@ import { Stitch } from "../types/Stitch";
 import { chartToSvg } from "../helpers/chart-export";
 import { useYarns } from "../useYarns";
 import { cssColour, displayYarn } from "../helpers/yarn-preference";
+import { regionCounts } from "../helpers/region-guide";
+
+/** As many places as fit beside the chart without pushing it off the page. */
+const printedPlaces = 24;
 
 interface ChartPrintSheetProps {
   stitches: Stitch[];
@@ -38,6 +42,18 @@ const ChartPrintSheet: React.FC<ChartPrintSheetProps> = ({
     return [...counts.values()].sort((a, b) => b.count - a.count);
   }, [stitches]);
 
+  /*
+   * By size here, not by name as the screen index is: on paper this sits
+   * beside the yarn key, which is also by size, and the eye reads the two
+   * together. Capped, because an ocean-going hat can touch sixty places and
+   * would push the chart off the sheet.
+   */
+  const places = useMemo(
+    () => [...regionCounts(stitches)].sort((a, b) => b.stitches - a.stitches),
+    [stitches]
+  );
+  const shown = places.slice(0, printedPlaces);
+
   return (
     <div className="print-only print-sheet">
       <h1>{title}</h1>
@@ -64,6 +80,21 @@ const ChartPrintSheet: React.FC<ChartPrintSheetProps> = ({
           );
         })}
       </div>
+      {shown.length > 0 && (
+        <div className="print-region-legend">
+          <span className="print-region-title">Where this hat is</span>
+          {shown.map((place) => (
+            <span className="print-region-item" key={place.key}>
+              {place.name} &middot; {place.stitches}
+            </span>
+          ))}
+          {places.length > shown.length && (
+            <span className="print-region-item">
+              and {places.length - shown.length} more
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 };

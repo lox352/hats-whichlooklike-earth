@@ -2,6 +2,7 @@ import { Stitch } from "../types/Stitch";
 import { layOutStitches } from "./pattern-layout";
 import { displayYarn, YarnChoices } from "./yarn-preference";
 import { markStrokeFraction, stitchMarkPath } from "./stitch-marks";
+import { regionCounts } from "./region-guide";
 
 /**
  * Builds the chart as an SVG from the layout data, rather than trying to
@@ -81,6 +82,7 @@ export const chartToSvg = (
   stitches: Stitch[],
   options: ChartSvgOptions = {}
 ): ChartSvg => {
+  const places = regionCounts(stitches);
   const { cell, labels, background, gridColour, emphasisEvery } = {
     ...defaults,
     ...options,
@@ -165,6 +167,18 @@ export const chartToSvg = (
     `<title>${escapeXml(
       `Knitting chart, ${numCols} stitches by ${numRows} rows`
     )}</title>`,
+    /*
+     * The downloaded chart is a file on its own, away from the page that
+     * described it, so it carries the places it is a picture of with it -
+     * where a reader, or a screen reader, will find them.
+     */
+    ...(places.length > 0
+      ? [
+          `<desc>${escapeXml(
+            `Places on this hat: ${places.map((place) => place.name).join(", ")}`
+          )}</desc>`,
+        ]
+      : []),
     `<rect width="${width}" height="${height}" fill="${background}"/>`,
     `<g>${cells.join("")}</g>`,
     `<g>${lines.join("")}</g>`,

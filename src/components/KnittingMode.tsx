@@ -12,6 +12,7 @@ import {
 import "./KnittingMode.css";
 import { useYarns } from "../useYarns";
 import { cssColour, displayYarn } from "../helpers/yarn-preference";
+import { currentRegion, regionInfo } from "../helpers/region-guide";
 
 interface KnittingModeProps {
   stitches: Stitch[];
@@ -67,6 +68,8 @@ const KnittingMode: React.FC<KnittingModeProps> = ({
   );
 
   const percent = counts.total === 0 ? 0 : (100 * counts.worked) / counts.total;
+  // Where the next stitch lands: the country or ocean you are knitting into.
+  const region = regionInfo(currentRegion(stitches, progress));
 
   const step = useCallback(
     (delta: number) => setProgress(progress + delta),
@@ -156,6 +159,13 @@ const KnittingMode: React.FC<KnittingModeProps> = ({
           <span className="knitting-label">Left</span>
           <b>{counts.remaining}</b>
         </span>
+        {region && (
+          <span className="knitting-region" aria-live="polite">
+            <span className="knitting-label">In</span>
+            <b>{region.name}</b>
+            {region.where && <span>, {region.where}</span>}
+          </span>
+        )}
       </div>
 
       {position.finished ? (

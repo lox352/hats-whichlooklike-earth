@@ -1,10 +1,17 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Stitch } from "./types/Stitch";
 import { layOutStitches, StitchPosition } from "./helpers/pattern-layout";
 import "./KnittingPattern.css";
 import { useYarns } from "./useYarns";
 import { cssColour, displayYarn, YarnChoices } from "./helpers/yarn-preference";
 import { stitchMarkPath } from "./helpers/stitch-marks";
+import {
+  currentRegion,
+  hasRegions,
+  regionCounts,
+  regionInfo,
+  regionOutline,
+} from "./helpers/region-guide";
 
 interface KnittingPatternProps {
   stitches: Stitch[];
@@ -53,6 +60,8 @@ const StitchBox: React.FC<{
   openTop: boolean;
   openLeft: boolean;
   yarns: YarnChoices;
+  /** The country or ocean this stitch landed on, if the hat knows. */
+  region?: string;
 }> = React.memo(
   ({
     stitch,
@@ -64,6 +73,7 @@ const StitchBox: React.FC<{
     openTop,
     openLeft,
     yarns,
+    region,
   }) => {
     const mark = stitchMarkPath(stitch.type, 0, 0, cellSize);
     return (
@@ -96,6 +106,7 @@ const StitchBox: React.FC<{
           .filter(Boolean)
           .join(" ")}
         data-next-stitch={isNext ? "true" : undefined}
+        data-region={region}
         style={{
           gridRow: numRows + position.row,
           gridColumn: numCols + position.col,
@@ -136,6 +147,18 @@ const KnittingPattern: React.FC<KnittingPatternProps> = ({
   );
 
   /*
+   * Which region to name. The globe is tiled, so every stitch is on one, and
+   * the chart can say which: pointing at it names the region under the
+   * pointer, a tap pins it so a finger can read it too - and a second tap on
+   * the same region lets go - and while knitting the region of the next
+   * stitch is named when nothing else is being asked about.
+   */
+  const [hoveredRegion, setHoveredRegion] = useState<string>();
+  const [pinnedRegion, setPinnedRegion] = useState<string>();
+  const regionOf = (target: EventTarget) =>
+    (target as Element).closest<HTMLElement>("[data-region]")?.dataset.region;
+
+  /*
    * Which squares of the grid have a stitch in them, so a cell can tell
    * whether anything is going to draw the line above or to the left of it.
    * Rows count upwards as they go negative and columns leftwards, so the
@@ -149,6 +172,35 @@ const KnittingPattern: React.FC<KnittingPatternProps> = ({
     }
     return squares;
   }, [filteredStitches, positions]);
+
+  const labelled = useMemo(
+    () => hasRegions(filteredStitches),
+    [filteredStitches]
+  );
+  const counts = useMemo(
+    () => regionCounts(filteredStitches),
+    [filteredStitches]
+  );
+  const knittingRegion = followProgress
+    ? currentRegion(stitches, progress)
+    : undefined;
+  const shownKey = hoveredRegion ?? pinnedRegion ?? knittingRegion;
+  const shown = regionInfo(shownKey);
+  const shownCount = counts.find((count) => count.key === shownKey);
+  const outline = useMemo(
+    () =>
+      shownKey
+        ? regionOutline(
+            filteredStitches,
+            positions,
+            numRows,
+            numCols,
+            cellSize,
+            shownKey
+          )
+        : "",
+    [filteredStitches, positions, numRows, numCols, shownKey]
+  );
 
   // Sideways, within the chart: keep the stitch being worked in the middle, so
   // the chart follows the knitter rather than having to be hunted for.
@@ -210,8 +262,19 @@ const KnittingPattern: React.FC<KnittingPatternProps> = ({
     <div>
       <div
         id="printable-section"
-        className="chart"
+        className={`chart${labelled ? " chart-labelled" : ""}`}
         ref={gridRef}
+        onPointerOver={(event) => {
+          // A finger has no hover; on touch the tap below does the work.
+          if (event.pointerType === "touch") return;
+          setHoveredRegion(regionOf(event.target));
+        }}
+        onPointerLeave={() => setHoveredRegion(undefined)}
+        onClick={(event) => {
+          const region = regionOf(event.target);
+          if (!region) return;
+          setPinnedRegion((pinned) => (pinned === region ? undefined : region));
+        }}
         style={{
           gridTemplateRows: `repeat(${numRows + 1}, ${cellSize}px)`,
           gridTemplateColumns: `repeat(${numCols + 1}, ${cellSize}px)`,
@@ -233,6 +296,7 @@ const KnittingPattern: React.FC<KnittingPatternProps> = ({
               openTop={!filled.has(`${position.row - 1},${position.col}`)}
               openLeft={!filled.has(`${position.row},${position.col - 1}`)}
               yarns={yarns}
+              region={stitch.region}
             />
           );
         })}
@@ -262,7 +326,52 @@ const KnittingPattern: React.FC<KnittingPatternProps> = ({
             </Label>
           );
         })}
+        {outline && (
+          <svg
+            className="chart-region"
+            width={numCols * cellSize}
+            height={numRows * cellSize}
+            style={{ gridArea: `1 / 1 / ${numRows + 1} / ${numCols + 1}` }}
+            aria-hidden="true"
+          >
+            {/*
+             * Twice: a paper-coloured halo under an ink line. The cells are
+             * four yarns running from near-white ice to mid-blue ocean, and a
+             * single stroke that reads against one of them disappears against
+             * another.
+             */}
+            <path className="chart-region-halo" d={outline} />
+            <path className="chart-region-line" d={outline} />
+          </svg>
+        )}
       </div>
+      {labelled && (
+        <p className="chart-region-caption screen-only" aria-live="polite">
+          {shown ? (
+            <>
+              <span className="chart-region-name">{shown.name}</span>
+              {shown.where && (
+                <span className="chart-region-where">, {shown.where}</span>
+              )}
+              {shownCount && (
+                <span className="chart-region-count">
+                  {" "}
+                  &middot; {shownCount.stitches}{" "}
+                  {shownCount.stitches === 1 ? "stitch" : "stitches"} on this hat
+                </span>
+              )}
+              {shownKey === pinnedRegion && hoveredRegion === undefined && (
+                <span className="chart-region-count">
+                  {" "}
+                  &middot; tap again to let go
+                </span>
+              )}
+            </>
+          ) : (
+            "Every stitch lands somewhere. Point at the chart, or tap it, to see where."
+          )}
+        </p>
+      )}
       <p className="chart-caption">
         {numCols} stitches across, {numRows} rows. Read from the bottom right,
         working right to left. Scroll sideways to see the whole round.
