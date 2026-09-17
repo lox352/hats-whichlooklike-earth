@@ -98,8 +98,18 @@ const colourAt = (
 
   const { width, height, rasterData, samplesPerPixel } = globe;
 
-  const x = Math.round(((longitude + 180) / 360) * width);
-  const y = Math.round(((90 - latitude) / 180) * height);
+  /*
+   * Clamped, because rounding puts longitude 180 one column past the east
+   * edge and latitude -90 one row below the south, and both are reachable
+   * exactly. Left alone they still produced a colour - the neighbourhood
+   * loop below quietly skipped whatever was out of range and averaged what
+   * was left - but it was an average over a partial neighbourhood, and it
+   * was a different cell from the one the region lookup reads. The two have
+   * to land on the same cell or a stitch can be labelled with a place it is
+   * not knitted in.
+   */
+  const x = Math.min(Math.round(((longitude + 180) / 360) * width), width - 1);
+  const y = Math.min(Math.round(((90 - latitude) / 180) * height), height - 1);
 
   let count = 0;
   let r = 0;

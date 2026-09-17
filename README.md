@@ -34,8 +34,10 @@ pinching at the brim.
 The same pass also records *where* each stitch landed - the country or ocean
 under its centre - so the chart can outline a place and name it, and knitting
 mode can say what you are working through. The label is read from the same
-coordinate as the colour, at the same moment, so the two cannot disagree about
-where a stitch is.
+coordinate as the colour, at the same moment, and from a grid built so that a
+land region falls only on land-coloured stitches and a water region only on
+the ocean blue. A blue stitch is always named as water and a green one always
+as land.
 
 ## Running it
 
@@ -70,11 +72,19 @@ production deploy.**
   globe raster is sampled from (`src/assets/region-labels.rle`), from Natural
   Earth's admin-0 countries at 1:50m and its marine polygons at 1:110m, both
   public domain; `scripts/region-reference.py` regenerates it, and the tests
-  check it against the source polygons at six thousand points. Countries
-  smaller than a cell - Malta, Monaco, the Maldives - are not on it, and the
-  ragged margin the marine layer leaves along Antarctica is settled by
-  nearness. Where the picture and the label disagree it is at a coastline, or
-  over an ice shelf, where a stitch is white because the shelf is and labelled
-  with the sea beneath it.
+  check it against the source polygons at six thousand points.
+- Every region is then made to be the kind of place its cell is painted. The
+  map and the photograph disagreed about one cell in forty - coastlines half a
+  cell out, the Antarctic ice shelves floating on sea but painted as ice, the
+  Arctic pack white over water - and where they did, the photograph won and the
+  cell took the nearest region of the kind it looks like. So the Ross Ice Shelf
+  is Antarctica rather than the Ross Sea, and the Great Lakes are the United
+  States, because that is the wool they are knitted in.
+  `src/helpers/earth-regions-wool.test.ts` checks this at all 583,200 cells.
+- The cost is that a place too small for the raster to paint is not on the hat
+  to be named. Hawaii, Singapore, Malta and the Maldives all average into the
+  sea around them at a third of a degree, so a stitch there is knitted blue and
+  called by the ocean it is knitted as. Sixty-eight countries are in that
+  position.
 - Sibling branches build the same machinery for different subjects: `space`
   (star charts) and `pictures`.

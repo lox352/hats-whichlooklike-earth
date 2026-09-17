@@ -1,6 +1,6 @@
 """Regenerate the region-label reference data.
 
-Optional; the outputs are committed. Needs `pip install numpy`.
+Optional; the outputs are committed. Needs `pip install numpy pillow`.
 
 The globe is tiled: every point on it is inside exactly one country or one
 named body of water, so every stitch of a charted hat is in exactly one
@@ -13,6 +13,15 @@ Three outputs:
   src/assets/region-labels.rle          the grid, run-length encoded
   src/data/region-names.ts              what to call each region
   src/helpers/__fixtures__/earth-regions.json   reference points for the tests
+
+A region is then only allowed to be the kind of place its cell is painted:
+land regions land exactly on the stitches knitted in a land colour, and water
+regions exactly on the ones knitted in the ocean blue. The map and the
+photograph disagree in about one cell in forty - along coastlines, over the
+Antarctic ice shelves, which float on sea but are painted as ice, and over the
+Arctic pack - and where they do, the photograph wins and the cell is given the
+nearest region of the kind it looks like. It is the wool that a knitter can
+see, so it is the wool that decides.
 
 Countries come from Natural Earth at 1:50m and the water from the marine
 layer at 1:110m. The grid is a fixed size, so the finer country data costs
@@ -30,6 +39,7 @@ from collections import deque
 from pathlib import Path
 
 import numpy as np
+from PIL import Image
 
 root = Path(__file__).resolve().parents[1]
 source = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson"
@@ -164,6 +174,103 @@ def flood(grid, seeds):
     return filled
 
 
+# The four yarns, from src/helpers/raster-colouring.ts. Only the first is
+# water; glacier white and ice beige are things that sit on land, or on a
+# shelf that is painted as though it were land.
+PALETTE = [(119, 159, 196), (178, 200, 169), (233, 240, 248), (241, 231, 212)]
+
+
+def painted_water():
+    """Which cells the hat is knitted in the ocean blue.
+
+    This is `colourAt` with its own arithmetic, not an approximation of it:
+    the mean of the 3x3 neighbourhood, neighbours off the edge of the raster
+    left out rather than wrapped, rounded per channel, then snapped to the
+    nearest of the four yarns. It has to be exact, because the whole point is
+    that the answer here and the answer the app computes are the same answer.
+    """
+    picture = np.asarray(
+        Image.open(root / "src/assets/raster_globe.tif").convert("RGB")
+    ).astype(float)
+    height, width = picture.shape[:2]
+    if (width, height) != (WIDTH, HEIGHT):
+        raise SystemExit(
+            f"the globe raster is {width}x{height} but the labels are {WIDTH}x{HEIGHT}"
+        )
+
+    total = np.zeros((HEIGHT, WIDTH, 3))
+    count = np.zeros((HEIGHT, WIDTH))
+    for down in (-1, 0, 1):
+        for right in (-1, 0, 1):
+            rows = slice(max(0, down), HEIGHT + min(0, down))
+            columns = slice(max(0, right), WIDTH + min(0, right))
+            total[rows, columns] += picture[
+                rows.start - down : rows.stop - down,
+                columns.start - right : columns.stop - right,
+            ]
+            count[rows, columns] += 1
+
+    mean = np.round(total / count[..., None])
+    yarns = np.array(PALETTE)
+    nearest = ((mean[:, :, None, :] - yarns[None, None, :, :]) ** 2).sum(-1).argmin(-1)
+    return nearest == 0
+
+
+def reconcile(grid, water_region, wants_water):
+    """Make every cell's region the kind of place the cell is painted.
+
+    The map and the photograph are different sources and disagree about one
+    cell in forty: a coastline falls half a cell out, an ice shelf floats on
+    the Ross Sea but is painted as ice, the Arctic pack is white over water.
+    The wool is what a knitter can see, so the wool decides, and a cell whose
+    region is the wrong kind is given the nearest region of the right kind.
+
+    Nearest by breadth-first search from all the cells that already agree, so
+    a fjord painted blue takes the name of the water it opens onto and a
+    shelf painted white takes the name of the land it is joined to.
+    """
+    kind_of = water_region[grid]
+    wrong = kind_of != wants_water
+    corrected = grid.copy()
+    corrected[wrong] = 0
+
+    for target in (True, False):
+        # Seed from the cells of this kind that were already right, and carry
+        # their region outwards across the whole grid, writing it only into
+        # the cells of this kind that were wrong. Crossing cells of the other
+        # kind on the way matters: a lake painted blue in the middle of a
+        # continent has no water touching it at all, and would otherwise be
+        # left stranded with nothing it could be called.
+        seeds = (~wrong) & (wants_water == target)
+        needed = wrong & (wants_water == target)
+        carried = np.zeros((HEIGHT, WIDTH), dtype=np.uint16)
+        carried[seeds] = grid[seeds]
+        queue = deque(zip(*(axis.tolist() for axis in np.nonzero(seeds))))
+        while queue:
+            row, column = queue.popleft()
+            value = carried[row, column]
+            for down, right in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+                next_row, next_column = row + down, (column + right) % WIDTH
+                if next_row < 0 or next_row >= HEIGHT:
+                    continue
+                if carried[next_row, next_column] != 0:
+                    continue
+                carried[next_row, next_column] = value
+                queue.append((next_row, next_column))
+                if needed[next_row, next_column]:
+                    corrected[next_row, next_column] = value
+
+    if (corrected == 0).any():
+        stranded = int((corrected == 0).sum())
+        raise SystemExit(
+            f"{stranded} cells are painted a kind of place with no region of "
+            "that kind anywhere they can reach"
+        )
+    moved = int((corrected != grid).sum())
+    print(f"moved {moved} cells to a region of the kind they are painted")
+    return corrected
+
+
 def inside(polys, longitude, latitude):
     """Point-in-polygon, one point at a time.
 
@@ -258,15 +365,33 @@ def main():
         raise SystemExit(f"{int((grid == 0).sum())} cells are still unassigned")
     print("the globe is tiled: every cell has exactly one region")
 
-    # Which cells were settled by nearness rather than by a polygon, so the
-    # fixture can leave them out: they are this script's opinion, not Natural
-    # Earth's, and a test should not assert an opinion against a silence.
-    derived = np.zeros((HEIGHT, WIDTH), dtype=bool)
-    derived[:] = True
-    scratch = np.zeros((HEIGHT, WIDTH), dtype=np.uint16)
+    # What the polygons alone said, before anything was settled by nearness.
+    # The fixture is built from this so that a test never asserts one of this
+    # script's own choices against the source data's silence.
+    from_polygons = np.zeros((HEIGHT, WIDTH), dtype=np.uint16)
     for key, polys in shapes:
-        burn(scratch, polys, index_of[key])
-    derived = scratch == 0
+        burn(from_polygons, polys, index_of[key])
+
+    # Now make the regions agree with the picture, cell for cell.
+    water_region = np.zeros(len(keys), dtype=bool)
+    for index, key in enumerate(keys):
+        if index == 0:
+            continue
+        water_region[index] = descriptions[key]["kind"] != "country"
+    wants_water = painted_water()
+    disagreed = int((water_region[grid] != wants_water).sum())
+    print(
+        f"{disagreed} cells ({100 * disagreed / (WIDTH * HEIGHT):.2f}%) were a "
+        "different kind of place from the wool they are knitted in"
+    )
+    grid = reconcile(grid, water_region, wants_water)
+    if (water_region[grid] != wants_water).any():
+        raise SystemExit("a cell is still the wrong kind of place")
+    print("every cell's region is the kind of place the cell is painted")
+
+    # Settled by nearness rather than read straight off a polygon: either a
+    # flood filled it, or the picture overruled the polygon that covered it.
+    derived = (from_polygons == 0) | (grid != from_polygons)
 
     used = sorted(set(grid.flatten().tolist()))
     print(f"{len(used)} regions occupy at least one cell, of {len(keys) - 1} in the data")

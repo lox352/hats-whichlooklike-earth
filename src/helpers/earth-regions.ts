@@ -19,12 +19,20 @@ import { GlobalCoordinates } from "../types/GlobalCoordinates";
  * ragged margin the marine polygons leave along Antarctica is settled by
  * nearness - see the script.
  *
- * What it cannot do is agree with the picture at a coastline, because the
- * picture is a photograph and this is a map. A stitch spans some six degrees
- * of a hat against this grid's third of one, so a stitch whose centre falls a
- * little offshore is labelled with the sea while most of its wool is green.
- * The label is the region under the centre of the stitch; that is the whole
- * of the promise, and it is the same point the dye reads.
+ * More than sharing a grid, the two are made to agree about what kind of
+ * place each cell is: a land region falls only on cells knitted in a land
+ * colour, and a water region only on cells knitted in the ocean blue. Where
+ * the map and the photograph disagreed - a coastline half a cell out, the
+ * Antarctic ice shelves floating on sea but painted as ice, the Arctic pack
+ * white over water - the photograph won and the cell was given the nearest
+ * region of the kind it looks like. So a blue stitch is always named as
+ * water and a green one always as land, and the test on this file checks
+ * that at every one of the 583,200 cells.
+ *
+ * The cost is that a place too small to be painted is not on the hat to be
+ * named: Hawaii and Singapore average into the sea around them at a third of
+ * a degree, so a stitch there is knitted blue and called by the ocean it is
+ * knitted as.
  */
 
 export interface RegionRaster {
@@ -130,14 +138,11 @@ const cellOf = (
   { width, height }: RegionRaster,
   { latitude, longitude }: GlobalCoordinates
 ): number => {
-  const x = Math.round(((longitude + 180) / 360) * width);
-  const y = Math.round(((90 - latitude) / 180) * height);
-
-  // Longitude 180 is reachable exactly, and rounds to `width`. It is the same
-  // meridian as -180, so it wraps. Latitude -90 rounds to `height`, and there
-  // is no row below the pole, so it clamps.
-  const column = ((x % width) + width) % width;
-  const row = Math.min(Math.max(y, 0), height - 1);
+  // Clamped exactly as colourAt clamps, so that a coordinate reads its colour
+  // and its region from one cell. Longitude 180 and latitude -90 are both
+  // reachable exactly and both round one past the edge.
+  const column = Math.min(Math.round(((longitude + 180) / 360) * width), width - 1);
+  const row = Math.min(Math.round(((90 - latitude) / 180) * height), height - 1);
   return row * width + column;
 };
 

@@ -89,10 +89,28 @@ describe("regionAt", () => {
     expect(at(48.86, 2.35)).toBe("FRA");
     expect(at(27.72, 85.32)).toBe("NPL");
     expect(at(-15.79, -47.88)).toBe("BRA");
-    expect(at(64.15, -21.94)).toBe("ISL");
-    // Islands too small for the 110m data, and the reason countries are 50m.
-    expect(at(19.6, -155.5)).toBe("USA");
-    expect(at(1.35, 103.82)).toBe("SGP");
+    expect(at(64.9, -18.6)).toBe("ISL");
+  });
+
+  /*
+   * A place the globe raster does not paint as land is not on the hat to be
+   * named. Hawaii and Singapore average into the sea around them at a third
+   * of a degree, so those stitches are knitted blue - and a blue stitch is
+   * named as water, whatever the map says is under it.
+   */
+  it("gives an island too small to be painted the sea it is knitted as", () => {
+    expect(at(19.6, -155.5)).toBe("north-pacific-ocean");
+    expect(at(1.35, 103.82)).toBe("south-china-sea");
+  });
+
+  /*
+   * The lakes come out the other way round: the globe raster paints the
+   * Great Lakes and Baikal the same green as the land, so those stitches are
+   * knitted green and named for the country around them.
+   */
+  it("names inland water for its country, because that is how it is knitted", () => {
+    expect(at(44.5, -82.5)).toBe("USA");
+    expect(at(53.5, 108)).toBe("RUS");
   });
 
   it("names the water as well as the land", () => {
@@ -106,12 +124,19 @@ describe("regionAt", () => {
   it("covers the poles, where a hat's crown and rim land", () => {
     expect(at(90, 0)).toBe("arctic-ocean");
     expect(at(-90, 0)).toBe("ATA");
-    expect(at(-70, 0)).toBe("southern-ocean");
+    expect(at(-72, -175)).toBe("ross-sea");
   });
 
-  it("reads the two sides of the date line as one meridian", () => {
+  /*
+   * The two sides of the date line are the same meridian but not the same
+   * cell: the raster has a first column and a last one, and both lookups
+   * clamp to the nearer of them rather than wrapping, because that is what
+   * colourAt does and the colour and the label have to agree.
+   */
+  it("has a region on both sides of the date line", () => {
     for (const latitude of [-60, -12, 0, 31, 70]) {
-      expect(at(latitude, 180)).toBe(at(latitude, -180));
+      expect(regionDescriptions[at(latitude, 180)]).toBeDefined();
+      expect(regionDescriptions[at(latitude, -180)]).toBeDefined();
     }
   });
 

@@ -237,8 +237,10 @@ describe("dyeOne", () => {
     expect(dyed.colour).toEqual([178, 200, 169]);
   });
 
+  // Inland: the coast averages into the sea at a third of a degree, and a
+  // stitch knitted blue is named for the water, not the country.
   it("names New Zealand when the hat is showing it", () => {
-    const dyed = dyeOne(allLand, regions, crown, maxY, pointedAt(-43.53, 172.64));
+    const dyed = dyeOne(allLand, regions, crown, maxY, pointedAt(-43.6, 171.6));
     expect(dyed.region).toBe("NZL");
   });
 
@@ -248,7 +250,7 @@ describe("dyeOne", () => {
    * the label has to be sea too.
    */
   it("paints a hidden New Zealand as sea and labels it as sea", () => {
-    const orientation = pointedAt(-43.53, 172.64, false);
+    const orientation = pointedAt(-43.6, 171.6, false);
     const dyed = dyeOne(allLand, regions, crown, maxY, orientation);
     expect(dyed.colour).toEqual([119, 159, 196]);
     expect(dyed.region).toBeDefined();
