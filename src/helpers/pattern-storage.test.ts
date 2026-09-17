@@ -315,3 +315,53 @@ describe("percentComplete", () => {
     expect(percentComplete(pattern(1, 0))).toBe(0);
   });
 });
+
+describe("region labels", () => {
+  it("keeps the region of every stitch through a save and a read", () => {
+    const labelled = stitches(4).map((stitch) => ({
+      ...stitch,
+      region: stitch.id % 2 === 0 ? "FRA" : "north-atlantic-ocean",
+    }));
+    const { result, pattern } = createPattern(labelled, "Biscay");
+    expect(result.ok).toBe(true);
+
+    const read = readPattern(pattern.id);
+    expect(read?.stitches.map((stitch) => stitch.region)).toEqual([
+      "FRA",
+      "north-atlantic-ocean",
+      "FRA",
+      "north-atlantic-ocean",
+    ]);
+  });
+
+  /*
+   * A hat charted before labels existed records no orientation, so there is
+   * no working out afterwards where it was pointed. It has to keep reading,
+   * and read back unlabelled rather than wrongly labelled.
+   */
+  it("reads a pattern saved before labels, leaving its stitches unlabelled", () => {
+    const id = "pattern-900";
+    localStorage.setItem(
+      id,
+      JSON.stringify({
+        version: 2,
+        id,
+        name: "Older",
+        savedAt: new Date().toISOString(),
+        stitches: stitches(3),
+        progress: 1,
+      })
+    );
+
+    const read = readPattern(id);
+    expect(read).not.toBeNull();
+    expect(read?.stitches).toHaveLength(3);
+    for (const stitch of read?.stitches ?? []) {
+      expect(stitch.region).toBeUndefined();
+    }
+  });
+
+  it("is on version 3, the version that records the region", () => {
+    expect(currentPatternVersion).toBe(3);
+  });
+});

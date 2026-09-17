@@ -1,6 +1,12 @@
 import { Point } from "../types/Point";
 import { GlobalCoordinates } from "../types/GlobalCoordinates";
-import { colourAt, loadGlobe, Palette } from "./raster-colouring";
+import { colourAt, GlobeRaster, loadGlobe, Palette } from "./raster-colouring";
+import {
+  loadRegionLabels,
+  marineRegionNear,
+  regionAt,
+  RegionRaster,
+} from "./earth-regions";
 import { type RGB } from "../types/RGB";
 import { OrientationParameters } from "../types/OrientationParameters";
 
@@ -162,59 +168,115 @@ const globeCoordinatesForStitch = (
     orientationParameters
   );
 
+export interface DyedHat {
+  /** One colour per position given, in the same order. */
+  colours: RGB[];
+  /**
+   * The region each position landed in, in the same order.
+   *
+   * Empty if the labels could not be loaded. A hat can be knitted without
+   * knowing what it is a picture of, so a failure here costs the labels and
+   * nothing else - and an unlabelled hat is exactly the shape of one charted
+   * before labels existed, so nothing downstream needs a second case for it.
+   */
+  regions: string[];
+}
+
 /**
- * Colour every stitch position in one pass.
+ * The colour and the region of one stitch, decided together.
  *
- * The raster is decoded once up front and then sampled synchronously, so this
- * does not yield per stitch. Callers get one array back and can apply it in a
- * single update, instead of one state write per stitch.
+ * Together, and from one coordinate, on purpose. The two are read from
+ * rasters on the same grid, so the only way they can come to disagree about
+ * where a stitch is, is if some caller works out the coordinate twice. This
+ * is the one place it is worked out. Exported for testing.
  */
-const colourNodes = async (
-  positions: Point[],
-  orientationParameters: OrientationParameters,
-  palette: RGB[] = Object.values(Palette)
-): Promise<RGB[]> => {
-  const globe = await loadGlobe();
-
-  const maxY = positions.reduce((max, { y }) => (y > max ? y : max), 0);
-
-  return positions.map((position) => {
-    const coordinates = globeCoordinatesForStitch(
-      position,
-      maxY,
-      orientationParameters
-    );
-
-    if (!orientationParameters.displayNewZealand && isNewZealand(coordinates)) {
-      return Palette.Blue;
-    }
-
-    return colourAt(globe, coordinates, palette) ?? unknownColour;
-  });
-};
-
-/** Single-stitch colouring. Prefer colourNodes when colouring a whole hat. */
-const colourNode = async (
+const dyeOne = (
+  globe: GlobeRaster,
+  labels: RegionRaster | undefined,
   position: Point,
   maxY: number,
   orientationParameters: OrientationParameters,
   palette: RGB[] = Object.values(Palette)
-): Promise<RGB> => {
-  const globe = await loadGlobe();
+): { colour: RGB; region?: string } => {
   const coordinates = globeCoordinatesForStitch(
     position,
     maxY,
     orientationParameters
   );
-  if (!orientationParameters.displayNewZealand && isNewZealand(coordinates)) {
-    return Palette.Blue;
+
+  // One decision read twice: a hat that hides New Zealand paints it sea, so
+  // it has to be labelled with the sea it is sitting in as well. A stitch
+  // that said "New Zealand" over blue wool would be contradicting the
+  // picture it is part of.
+  const hidden =
+    !orientationParameters.displayNewZealand && isNewZealand(coordinates);
+
+  const colour = hidden
+    ? Palette.Blue
+    : colourAt(globe, coordinates, palette) ?? unknownColour;
+
+  if (!labels) return { colour };
+  return {
+    colour,
+    region: hidden
+      ? marineRegionNear(labels, coordinates)
+      : regionAt(labels, coordinates),
+  };
+};
+
+/**
+ * Colour and label every stitch position in one pass.
+ *
+ * Both rasters are decoded once up front and then read synchronously, so this
+ * does not yield per stitch. Callers get one result back and can apply it in
+ * a single update, instead of one state write per stitch.
+ */
+const colourNodes = async (
+  positions: Point[],
+  orientationParameters: OrientationParameters,
+  palette: RGB[] = Object.values(Palette)
+): Promise<DyedHat> => {
+  // Side by side: the labels are a fiftieth of the globe raster's weight, so
+  // fetching them costs nothing that waiting for the globe has not already
+  // spent.
+  const [globe, labels] = await Promise.all([
+    loadGlobe(),
+    loadRegionLabels().catch((error) => {
+      console.warn("Knitting this hat without labels:", error);
+      return undefined;
+    }),
+  ]);
+
+  const maxY = positions.reduce((max, { y }) => (y > max ? y : max), 0);
+
+  const colours: RGB[] = [];
+  const regions: string[] = [];
+  for (const position of positions) {
+    const dyed = dyeOne(
+      globe,
+      labels,
+      position,
+      maxY,
+      orientationParameters,
+      palette
+    );
+    colours.push(dyed.colour);
+    if (dyed.region !== undefined) regions.push(dyed.region);
   }
-  return colourAt(globe, coordinates, palette) ?? unknownColour;
+
+  // Either every stitch is labelled or none is: regionAt throws rather than
+  // returning nothing, so a short list would mean the two arrays had come out
+  // of step and every stitch after the gap would wear its neighbour's label.
+  if (regions.length !== 0 && regions.length !== colours.length) {
+    throw new Error("Labelled only part of the hat");
+  }
+
+  return { colours, regions };
 };
 
 export {
-  colourNode,
   colourNodes,
+  dyeOne,
   getGlobalCoordinates,
   globeCoordinatesForStitch,
   rotateToDestination,

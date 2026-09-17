@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
   clampToUnit,
+  dyeOne,
   getGlobalCoordinates,
+  globeCoordinatesForStitch,
   isNewZealand,
   rotateToDestination,
 } from "./node-colouring";
+import { decodeRegionLabels, regionAt } from "./earth-regions";
+import { regionDescriptions } from "../data/region-names";
+import { GlobeRaster } from "./raster-colouring";
+import labels from "../assets/region-labels.rle?raw";
 import { OrientationParameters } from "../types/OrientationParameters";
 import DestinationType from "../types/DestinationType";
 
@@ -176,5 +182,83 @@ describe("isNewZealand", () => {
   it("does not cover Sydney or Fiji", () => {
     expect(isNewZealand({ latitude: -33.87, longitude: 151.2 })).toBe(false);
     expect(isNewZealand({ latitude: -17.7, longitude: 178.0 })).toBe(false);
+  });
+});
+
+describe("dyeOne", () => {
+  const regions = decodeRegionLabels(labels);
+
+  /*
+   * A globe painted entirely land, so the sea a hidden New Zealand is given
+   * cannot be confused with a colour that was read from the raster.
+   */
+  const allLand: GlobeRaster = {
+    width: 4,
+    height: 2,
+    samplesPerPixel: 3,
+    rasterData: new Uint8Array(
+      Array.from({ length: 8 }, () => [178, 200, 169]).flat()
+    ),
+  };
+
+  /*
+   * The crown of the hat lands exactly on the coordinate the design is
+   * pointed at, so the topmost stitch is a way of asking about one place.
+   */
+  const maxY = 2;
+  const crown = { x: 0, y: maxY, z: 0 };
+  const pointedAt = (
+    latitude: number,
+    longitude: number,
+    displayNewZealand = true
+  ) => ({
+    coordinates: { latitude, longitude },
+    targetDestination: "crown" as const,
+    displayNewZealand,
+  });
+
+  it("reads the colour and the region from one coordinate", () => {
+    for (const [latitude, longitude] of [
+      [51.51, -0.13],
+      [-15.79, -47.88],
+      [30, -40],
+      [35.68, 139.69],
+    ]) {
+      const orientation = pointedAt(latitude, longitude);
+      const dyed = dyeOne(allLand, regions, crown, maxY, orientation);
+      const coordinates = globeCoordinatesForStitch(crown, maxY, orientation);
+      expect(dyed.region).toBe(regionAt(regions, coordinates));
+    }
+  });
+
+  it("labels a hat that has no labels loaded with nothing at all", () => {
+    const dyed = dyeOne(allLand, undefined, crown, maxY, pointedAt(51.51, -0.13));
+    expect(dyed.region).toBeUndefined();
+    expect(dyed.colour).toEqual([178, 200, 169]);
+  });
+
+  it("names New Zealand when the hat is showing it", () => {
+    const dyed = dyeOne(allLand, regions, crown, maxY, pointedAt(-43.53, 172.64));
+    expect(dyed.region).toBe("NZL");
+  });
+
+  /*
+   * The invariant the whole feature rests on: a stitch may never say it is
+   * somewhere the hat is not painting. Hiding New Zealand paints it sea, so
+   * the label has to be sea too.
+   */
+  it("paints a hidden New Zealand as sea and labels it as sea", () => {
+    const orientation = pointedAt(-43.53, 172.64, false);
+    const dyed = dyeOne(allLand, regions, crown, maxY, orientation);
+    expect(dyed.colour).toEqual([119, 159, 196]);
+    expect(dyed.region).toBeDefined();
+    expect(regionDescriptions[dyed.region as string].kind).not.toBe("country");
+  });
+
+  it("leaves the rest of the world alone when New Zealand is hidden", () => {
+    const orientation = pointedAt(51.51, -0.13, false);
+    const dyed = dyeOne(allLand, regions, crown, maxY, orientation);
+    expect(dyed.colour).toEqual([178, 200, 169]);
+    expect(dyed.region).toBe("GBR");
   });
 });

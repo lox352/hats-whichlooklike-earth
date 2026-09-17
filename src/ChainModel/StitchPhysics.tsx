@@ -129,7 +129,10 @@ const StitchPhysics: React.FC<StitchPhysicsProps> = ({
           stitchRef.current?.translation() ?? stitches[index].position
       );
 
-      const colours = await colourNodes(positions, orientationParameters);
+      const { colours, regions } = await colourNodes(
+        positions,
+        orientationParameters
+      );
 
       /*
        * Pack the colours for the instanced mesh, and work out the order the
@@ -157,6 +160,7 @@ const StitchPhysics: React.FC<StitchPhysicsProps> = ({
         current.map((stitch, index) => ({
           ...stitch,
           colour: colours[index] ?? stitch.colour,
+          region: regions[index] ?? stitch.region,
           position: positions[index] ?? stitch.position,
         }))
       );
