@@ -384,13 +384,16 @@ hr {
  * rather than four unrelated documents.
  */
 @keyframes page-in {
+  /*
+   * A fade alone: a page that moved as it came in would hold its fixed
+   * parts - the knitting bar along the foot - to itself rather than to the
+   * screen, for as long as the animation is kept.
+   */
   from {
     opacity: 0;
-    transform: translateY(6px);
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 

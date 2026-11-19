@@ -110,3 +110,24 @@
     width: 10px;
   }
 }
+
+/*
+ * On a phone, the title and the settings share the top line, and the steps,
+ * which need the room, have the line under it to themselves.
+ */
+@media (max-width: 560px) {
+  .masthead {
+    row-gap: 6px;
+  }
+  .masthead-end {
+    display: contents;
+  }
+  .masthead .settings-button {
+    order: 2;
+    margin-left: auto;
+  }
+  .masthead .steps {
+    order: 3;
+    width: 100%;
+  }
+}
