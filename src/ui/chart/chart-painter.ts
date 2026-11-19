@@ -93,6 +93,29 @@ export interface ChartOverlay {
   tint?: (id: number) => { fill: string; alpha: number } | undefined;
   /** By round, from 1. */
   strips?: { round: number; fill: string }[];
+  /**
+   * Lines from the middle of one stitch to the middle of another, over
+   * everything else: a constellation's figure, sewn on after the knitting.
+   * A line across the seam - its ends more than half the chart apart - is
+   * drawn both ways round, off each edge; an end `below` the brim, where a
+   * figure runs off the hat, is drawn as far below the bottom row as the
+   * stitch it names is above it.
+   */
+  lines?: OverlayLine[];
+}
+
+export interface OverlayLine {
+  from: number;
+  to: number;
+  fromBelow?: boolean;
+  toBelow?: boolean;
+  colour: string;
+  /** In CSS pixels, at a cell of 16; it grows and shrinks with the chart, never under a pixel. */
+  width: number;
+  alpha?: number;
+  dashed?: boolean;
+  /** Drawn first, under the line, wider: so it reads over any yarn. */
+  halo?: string;
 }
 
 /** Room to the right of the chart for the round numbers: as wide as three figures, however small a stitch. */
@@ -926,6 +949,7 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
     });
     ctx.globalAlpha = 1;
   }
+  if (overlay?.lines?.length) paintLines(ctx, overlay.lines, scene, state);
   if (overlay?.strips) {
     const stripWidth = Math.max(3, Math.round(cell * 0.28));
     for (const strip of overlay.strips) {
@@ -937,6 +961,53 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
   }
 
   ctx.restore();
+};
+
+/** The overlay's lines, each between the middles of its two stitches as they are on screen: see ChartOverlay.lines. */
+const paintLines = (ctx: Ctx2D, lines: OverlayLine[], scene: ChartScene, state: PaintState) => {
+  const { left, width, top, height, cell } = state;
+  const columns = scene.layout.columns;
+  // The chart's edges across: column 0 stands for its right edge, the one past the last for its left.
+  const span = Math.abs(left[0] - left[columns + 1]);
+  const bottom = top[1] + height[1];
+  const middle = (id: number, below?: boolean): [number, number] | undefined => {
+    const row = scene.rowOf[id];
+    const column = scene.columnOf[id];
+    if (!row || width[column] <= 0 || height[row] <= 0) return undefined;
+    const y = top[row] + height[row] / 2;
+    return [left[column] + width[column] / 2, below ? bottom + (bottom - y) : y];
+  };
+  const scale = cell / 16;
+  ctx.lineCap = "round";
+  for (const line of lines) {
+    const a = middle(line.from, line.fromBelow);
+    const b = middle(line.to, line.toBelow);
+    if (!a || !b) continue;
+    const across = span > 0 && Math.abs(a[0] - b[0]) > span / 2;
+    // Across the seam: from the nearer end off the left edge to the far one brought round, and back off the right.
+    const [near, far] = a[0] < b[0] ? [a, b] : [b, a];
+    const segments = across
+      ? [
+          [near[0], near[1], far[0] - span, far[1]],
+          [near[0] + span, near[1], far[0], far[1]],
+        ]
+      : [[a[0], a[1], b[0], b[1]]];
+    for (const pass of line.halo ? [true, false] : [false]) {
+      const lineWidth = Math.max(1, line.width * scale) + (pass ? Math.max(2, 2.5 * scale) : 0);
+      ctx.strokeStyle = pass ? line.halo! : line.colour;
+      ctx.globalAlpha = line.alpha ?? 1;
+      ctx.lineWidth = lineWidth;
+      ctx.setLineDash(line.dashed ? [lineWidth * 2, lineWidth * 2] : []);
+      ctx.beginPath();
+      for (const [x0, y0, x1, y1] of segments) {
+        ctx.moveTo(x0, y0);
+        ctx.lineTo(x1, y1);
+      }
+      ctx.stroke();
+    }
+  }
+  ctx.setLineDash([]);
+  ctx.globalAlpha = 1;
 };
 
 /** Where every row is with every row showing, as the layout lays them out: row 1 at the bottom. */
