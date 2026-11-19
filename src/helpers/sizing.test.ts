@@ -180,8 +180,10 @@ describe("defaults agree with each other", () => {
     expect(height).toBeCloseTo(hatHeightFromArc(defaultOverTheTop), 0);
   });
 
-  it("the default brim is a beanie's, about 5cm, and leaves the hat a body", () => {
-    expect((defaultBrimRounds / defaultGauge.rowsPer10cm) * 10).toBeCloseTo(5, 0);
+  it("the default brim is a beanie's, about 3cm and a sixth of the hat, and leaves it a body", () => {
+    expect((defaultBrimRounds / defaultGauge.rowsPer10cm) * 10).toBeCloseTo(3, 0);
+    const all = totalRowsFor(defaultStitchesPerRow, defaultNumberOfRows, defaultDecreaseMethod, defaultBrimRounds);
+    expect(defaultBrimRounds / all).toBeLessThan(0.22);
     expect(defaultNumberOfRows).toBeGreaterThan(minimumNumberOfRows);
   });
 
