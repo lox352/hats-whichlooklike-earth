@@ -1,5 +1,6 @@
 import { Stitch } from "../types/Stitch";
-import { verticalStitchDistance } from "../constants";
+import { adjacentStitchDistance, verticalStitchDistance } from "../constants";
+import { hatRoundOf } from "./brim";
 import { indexRows } from "./knitting-progress";
 
 /**
@@ -14,7 +15,8 @@ import { indexRows } from "./knitting-progress";
  *
  *  - The radius is the cast-on circle, taken straight from the stitches. The
  *    cast-on row is pinned in place and is the widest part of the hat, so this
- *    is not an estimate.
+ *    is not an estimate. Under a brim, which is narrower, it is the widest a
+ *    round of the hat's own stitches can be pulled.
  *  - The row count comes from the chart layout, so it counts the crown's rows
  *    as well as the body's.
  *
@@ -90,6 +92,9 @@ export const predictHatShape = (stitches: Stitch[]): HatShape => {
   if (stitches.length === 0) return { radius: 1, height: 1, rows: 0 };
 
   const rows = Math.max(indexRows(stitches).totalRows, 1);
-  const radius = Math.max(castOnRadius(stitches), 0.001);
+  // A brim is narrower than the hat above it, which is as wide as a ring of its own stitches can be pulled.
+  const above = hatRoundOf(stitches);
+  const ring = above === undefined ? 0 : (adjacentStitchDistance * above) / (2 * Math.PI);
+  const radius = Math.max(castOnRadius(stitches), ring, 0.001);
   return { radius, height: settledHeight(radius, rows), rows };
 };

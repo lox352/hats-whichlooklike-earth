@@ -14,6 +14,7 @@ import {
   totalRowsFor,
 } from "../helpers/sizing";
 import { writeGauge } from "../helpers/gauge-preference";
+import { brimRoundsFor } from "../helpers/brim";
 import Button from "./ui/Button";
 import NumberField from "./ui/NumberField";
 
@@ -23,7 +24,9 @@ interface SizeCalculatorProps {
   stitchesPerRow: number;
   numberOfRows: number;
   decreaseMethod: DecreaseMethod;
-  onSize: (stitchesPerRow: number, numberOfRows: number) => void;
+  /** Rounds of brim the design has now, 0 for none. */
+  brimRounds: number;
+  onSize: (stitchesPerRow: number, numberOfRows: number, brimRounds: number) => void;
 }
 
 const round1 = (value: number) => Math.round(value * 10) / 10;
@@ -49,12 +52,19 @@ const SizeCalculator: React.FC<SizeCalculatorProps> = ({
   stitchesPerRow,
   numberOfRows,
   decreaseMethod,
+  brimRounds,
   onSize,
 }) => {
   const [headCircumference, setHeadCircumference] = useState(
     defaultHeadCircumference
   );
   const [overTheTop, setOverTheTop] = useState(defaultOverTheTop);
+  // As deep as the design's brim, to start with, or none if it has none.
+  const [brimDepth, setBrimDepth] = useState(() =>
+    brimRounds > 0 && gauge.rowsPer10cm > 0
+      ? round1((brimRounds / gauge.rowsPer10cm) * 10)
+      : 0
+  );
 
   const gaugeUsable = isValidGauge(gauge);
 
@@ -71,14 +81,17 @@ const SizeCalculator: React.FC<SizeCalculatorProps> = ({
       gauge,
       decreaseMethod
     );
+    const brim = brimRoundsFor(brimDepth, gauge.rowsPer10cm);
     onSize(
       stitches,
       bodyRowsForHeight(
         hatHeightFromArc(overTheTop),
         stitches,
         gauge,
-        decreaseMethod
-      )
+        decreaseMethod,
+        brim
+      ),
+      brim
     );
   };
 
@@ -86,10 +99,20 @@ const SizeCalculator: React.FC<SizeCalculatorProps> = ({
     ? round1(circumferenceFor(stitchesPerRow, gauge))
     : null;
   const finishedHeight = gaugeUsable
-    ? round1(totalHeightFor(stitchesPerRow, numberOfRows, gauge, decreaseMethod))
+    ? round1(
+        totalHeightFor(stitchesPerRow, numberOfRows, gauge, decreaseMethod, brimRounds)
+      )
+    : null;
+  const brimHeight = gaugeUsable
+    ? round1((brimRounds / gauge.rowsPer10cm) * 10)
     : null;
   const crownRows = crownRowsFor(stitchesPerRow, decreaseMethod);
-  const totalRows = totalRowsFor(stitchesPerRow, numberOfRows, decreaseMethod);
+  const totalRows = totalRowsFor(
+    stitchesPerRow,
+    numberOfRows,
+    decreaseMethod,
+    brimRounds
+  );
 
 
   return (
@@ -122,11 +145,26 @@ const SizeCalculator: React.FC<SizeCalculatorProps> = ({
             step={0.5}
             width="8rem"
           />
+          <NumberField
+            label="Brim (cm)"
+            value={brimDepth}
+            onChange={setBrimDepth}
+            min={0}
+            max={20}
+            step={0.5}
+            width="8rem"
+          />
         </div>
         <p className="design-hint">
           That makes a hat{" "}
           <strong>{round1(hatHeightFromArc(overTheTop))}cm</strong> tall, brim
-          edge to crown.
+          edge to crown
+          {brimDepth > 0 ? (
+            <>, the first {round1(brimDepth)}cm of it a ribbed brim</>
+          ) : (
+            <>, with no brim</>
+          )}
+          .
         </p>
       </div>
 
@@ -172,8 +210,15 @@ const SizeCalculator: React.FC<SizeCalculatorProps> = ({
           <>
             {stitchesPerRow} stitches and {numberOfRows} rows of body makes a
             hat <strong>{finishedCircumference}cm</strong> around and{" "}
-            <strong>{finishedHeight}cm</strong> tall. The crown adds{" "}
-            {crownRows} rows on top of the body, {totalRows} in all.
+            <strong>{finishedHeight}cm</strong> tall.{" "}
+            {brimRounds > 0 && (
+              <>
+                The brim is {brimRounds} rounds, about {brimHeight}cm, under
+                the body;{" "}
+              </>
+            )}
+            {brimRounds > 0 ? "the" : "The"} crown adds {crownRows} rows on
+            top, {totalRows} in all.
           </>
         ) : (
           "Enter your gauge above to see what size this makes."

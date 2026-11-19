@@ -10,6 +10,9 @@ import type { HatKnitting } from "./hat-knitting";
  * and what is left is the map the hat is a picture of.
  *
  * Seen from outside the hat, as anyone looks at one, so east is to the right.
+ *
+ * A brim is left off: it is no part of the picture (see helpers/brim), and
+ * its rounds would read as a band of whatever colour the trim is.
  */
 
 export interface UnrolledStitch {
@@ -24,7 +27,9 @@ export interface UnrolledStitch {
 const turn = (fraction: number) => ((fraction % 1) + 1) % 1;
 
 export const unrolled = (hat: HatStitch[], knitting: HatKnitting): UnrolledStitch[][] =>
-  knitting.rounds.map((ids) => {
+  knitting.rounds
+    .filter((ids) => !ids.every((id) => hat[knitting.hatIdOf(id) ?? -1]?.brim))
+    .map((ids) => {
     const placed = ids
       .map((id) => {
         const own = knitting.hatIdOf(id);

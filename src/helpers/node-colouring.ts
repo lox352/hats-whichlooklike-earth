@@ -9,6 +9,8 @@ import {
 } from "./earth-regions";
 import { type RGB } from "../types/RGB";
 import { OrientationParameters } from "../types/OrientationParameters";
+import { Stitch } from "../types/Stitch";
+import { pictureOf } from "./brim";
 
 /** Colour used when a stitch cannot be placed on the globe at all. */
 const unknownColour: RGB = Palette.Blue;
@@ -274,7 +276,30 @@ const colourNodes = async (
   return { colours, regions };
 };
 
+/**
+ * Colour and label a hat: the part of it its picture is projected onto,
+ * which is everything above the brim (see helpers/brim), as though that were
+ * the whole hat. A brim's stitches keep the trim they were knitted in and
+ * land on no place. Both lists are by the hat's own ids.
+ */
+const colourHat = async (
+  stitches: Stitch[],
+  positions: Point[],
+  orientationParameters: OrientationParameters
+): Promise<{ colours: RGB[]; regions: (string | undefined)[] }> => {
+  const picture = pictureOf(stitches, positions);
+  const dyed = await colourNodes(picture.positions, orientationParameters);
+  const colours = stitches.map((stitch) => stitch.colour);
+  const regions: (string | undefined)[] = [];
+  picture.ids.forEach((id, at) => {
+    colours[id] = dyed.colours[at];
+    if (dyed.regions.length > 0) regions[id] = dyed.regions[at];
+  });
+  return { colours, regions };
+};
+
 export {
+  colourHat,
   colourNodes,
   dyeOne,
   getGlobalCoordinates,

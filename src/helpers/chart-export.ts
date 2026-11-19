@@ -111,7 +111,8 @@ export const chartToSvg = (
     const y = row * cell;
     cells.push(
       `<rect x="${x}" y="${y}" width="${cell}" height="${cell}" fill="${safeColour(
-        yarns ? displayYarn(stitch.colour, yarns).colour : stitch.colour
+        // A brim is in its own colour, whichever of the earth's it happens to be.
+        yarns && !stitch.brim ? displayYarn(stitch.colour, yarns).colour : stitch.colour
       )}"/>`
     );
     const symbol = decreaseSymbol(stitch.type, x, y, cell, "#1f2937");

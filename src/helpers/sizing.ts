@@ -5,6 +5,7 @@ import {
 } from "../types/KnittingMachine";
 import { getStitches } from "./stitches";
 import { indexRows } from "./knitting-progress";
+import { brimRoundsFor, defaultBrimDepth } from "./brim";
 
 /**
  * Turns a head measurement and a gauge into a stitch count, and back again.
@@ -130,38 +131,52 @@ export const crownRowsFor = (
   return rows;
 };
 
-/** Total rows in the finished hat: the body plus the crown. */
+/**
+ * Total rows in the finished hat: the brim, the body and the crown. A brim
+ * knits the round a hat without one casts on with, so the body above it is
+ * as many rows as it would be without (see helpers/stitches), and the brim's
+ * rounds are all on top of that.
+ */
 export const totalRowsFor = (
   stitchesPerRow: number,
   numberOfRows: number,
-  decreaseMethod: DecreaseMethod
-): number => numberOfRows + crownRowsFor(stitchesPerRow, decreaseMethod);
+  decreaseMethod: DecreaseMethod,
+  brimRounds = 0
+): number =>
+  brimRounds + numberOfRows + crownRowsFor(stitchesPerRow, decreaseMethod);
 
-/** Finished height of the hat, brim edge to crown, in cm. */
+/**
+ * Finished height of the hat, brim edge to crown, in cm. The brim is counted
+ * at the hat's own row gauge: on smaller needles it comes out a little
+ * shorter, which a knitter who ribs to a measurement rather than a count of
+ * rounds makes up for anyway.
+ */
 export const totalHeightFor = (
   stitchesPerRow: number,
   numberOfRows: number,
   gauge: Gauge,
-  decreaseMethod: DecreaseMethod
+  decreaseMethod: DecreaseMethod,
+  brimRounds = 0
 ): number =>
-  (totalRowsFor(stitchesPerRow, numberOfRows, decreaseMethod) /
+  (totalRowsFor(stitchesPerRow, numberOfRows, decreaseMethod, brimRounds) /
     gauge.rowsPer10cm) *
   10;
 
 /**
- * Rows of body needed for a finished hat of this height, once the crown has
- * taken its share. Never returns fewer than the machine will accept, so a hat
- * asked to be shorter than its own crown still knits.
+ * Rows of body needed for a finished hat of this height, once the crown and
+ * the brim have taken their shares. Never returns fewer than the machine will
+ * accept, so a hat asked to be shorter than its own crown still knits.
  */
 export const bodyRowsForHeight = (
   hatHeight: number,
   stitchesPerRow: number,
   gauge: Gauge,
-  decreaseMethod: DecreaseMethod
+  decreaseMethod: DecreaseMethod,
+  brimRounds = 0
 ): number => {
   const totalRows = Math.round((hatHeight / 10) * gauge.rowsPer10cm);
   const crown = crownRowsFor(stitchesPerRow, decreaseMethod);
-  return Math.max(totalRows - crown, minimumNumberOfRows);
+  return Math.max(totalRows - crown - brimRounds, minimumNumberOfRows);
 };
 
 /**
@@ -201,9 +216,16 @@ export const defaultStitchesPerRow = stitchesPerRowFor(
   defaultDecreaseMethod
 );
 
+/** A beanie's brim, at the default gauge: see helpers/brim. */
+export const defaultBrimRounds = brimRoundsFor(
+  defaultBrimDepth,
+  defaultGauge.rowsPer10cm
+);
+
 export const defaultNumberOfRows = bodyRowsForHeight(
   hatHeightFromArc(defaultOverTheTop),
   defaultStitchesPerRow,
   defaultGauge,
-  defaultDecreaseMethod
+  defaultDecreaseMethod,
+  defaultBrimRounds
 );

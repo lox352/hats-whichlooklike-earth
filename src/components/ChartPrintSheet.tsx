@@ -31,13 +31,14 @@ const ChartPrintSheet: React.FC<ChartPrintSheetProps> = ({
   );
 
   const used = useMemo(() => {
-    const counts = new Map<string, { colour: Stitch["colour"]; count: number }>();
+    const counts = new Map<string, { colour: Stitch["colour"]; count: number; brim?: true }>();
     stitches.forEach((stitch) => {
       if (stitch.id === 0) return;
-      const key = stitch.colour.join(",");
+      // The brim's yarn is its own, whatever its colour.
+      const key = stitch.brim ? "brim" : stitch.colour.join(",");
       const existing = counts.get(key);
       if (existing) existing.count += 1;
-      else counts.set(key, { colour: stitch.colour, count: 1 });
+      else counts.set(key, { colour: stitch.colour, count: 1, ...(stitch.brim ? { brim: true as const } : {}) });
     });
     return [...counts.values()].sort((a, b) => b.count - a.count);
   }, [stitches]);
@@ -68,9 +69,14 @@ const ChartPrintSheet: React.FC<ChartPrintSheetProps> = ({
       />
       <div className="print-legend">
         {used.map((entry) => {
-          const yarn = displayYarn(entry.colour, yarns);
+          const yarn = entry.brim
+            ? { name: "Brim", colour: entry.colour }
+            : displayYarn(entry.colour, yarns);
           return (
-            <span className="print-legend-item" key={entry.colour.join(",")}>
+            <span
+              className="print-legend-item"
+              key={entry.brim ? "brim" : entry.colour.join(",")}
+            >
               <span
                 className="print-legend-swatch"
                 style={{ backgroundColor: cssColour(yarn.colour) }}

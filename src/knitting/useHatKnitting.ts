@@ -26,7 +26,8 @@ export const useHatKnitting = (hatStitches: HatStitch[]) => {
     [knitting],
   );
   const slots = useMemo(() => new Set(knitting.stitches.map((stitch) => stitch.slot)), [knitting]);
-  const palette = useMemo(() => paletteFrom(yarns, slots), [yarns, slots]);
+  const trim = useMemo(() => hatStitches.find((stitch) => stitch.brim)?.colour, [hatStitches]);
+  const palette = useMemo(() => paletteFrom(yarns, slots, trim), [yarns, slots, trim]);
   const names = useMemo(() => roundNames(index), [index]);
   const whats = useMemo(() => roundWhats(index), [index]);
   return { knitting, stitches: knitting.stitches, rounds: knitting.rounds, index, layout, palette, names, whats };

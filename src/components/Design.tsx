@@ -16,6 +16,9 @@ import {
 import { Gauge } from "../helpers/sizing";
 import { readGauge } from "../helpers/gauge-preference";
 import InputField from "./InputField";
+import NeedlesField from "./NeedlesField";
+import { brimNeedlesFor, brimStitchesFor } from "../helpers/brim";
+import { RGB } from "../types/RGB";
 import CoordinatesInput from "./CoordinatesInput";
 import ToggleAdvancedOptions from "./ToggleAdvancedOptions";
 import ShareDesignLink from "./ShareDesignLink";
@@ -40,6 +43,14 @@ const locationTypeFor = (coordinates: GlobalCoordinates): LocationType => {
   if (sameCoordinates(coordinates, northPole)) return "North Pole";
   if (sameCoordinates(coordinates, southPole)) return "South Pole";
   return "Custom Location";
+};
+
+const hexOf = (colour: RGB) =>
+  `#${colour.map((channel) => Math.round(channel).toString(16).padStart(2, "0")).join("")}`;
+
+const rgbOf = (hex: string): RGB => {
+  const value = parseInt(hex.replace("#", ""), 16);
+  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
 };
 
 const problemFor = (
@@ -82,10 +93,14 @@ const Design: React.FC = () => {
       validateDesign(
         design.stitchesPerRow,
         design.numberOfRows,
-        design.decreaseMethod
+        design.decreaseMethod,
+        design.brim.rounds
       ),
     [design]
   );
+
+  const updateBrim = (changes: Partial<HatDesign["brim"]>) =>
+    update({ brim: { ...design.brim, ...changes } });
 
   const update = (changes: Partial<HatDesign>) =>
     setSearchParams(designToSearchParams({ ...design, ...changes }), {
@@ -149,9 +164,14 @@ const Design: React.FC = () => {
         stitchesPerRow={design.stitchesPerRow}
         numberOfRows={design.numberOfRows}
         decreaseMethod={design.decreaseMethod}
-        onSize={(stitchesPerRow, numberOfRows) => {
+        brimRounds={design.brim.rounds}
+        onSize={(stitchesPerRow, numberOfRows, brimRounds) => {
           setShowProblems(false);
-          update({ stitchesPerRow, numberOfRows });
+          update({
+            stitchesPerRow,
+            numberOfRows,
+            brim: { ...design.brim, rounds: brimRounds },
+          });
         }}
       />
 
@@ -173,6 +193,78 @@ const Design: React.FC = () => {
           }
         />
       </div>
+
+      <h2 className="design-section-heading" style={{ marginTop: "10px" }}>
+        Brim
+      </h2>
+
+      <div className="design-row">
+        <InputField
+          label="Rounds of brim"
+          value={design.brim.rounds}
+          valueSetter={(rounds) => updateBrim({ rounds })}
+          min={0}
+          problem={
+            showProblems ? problemFor(problems, "brimRounds") : undefined
+          }
+        />
+        {design.brim.rounds > 0 && (
+          <div className="design-field">
+            <label className="design-colour">
+              <span className="design-field-label">Brim colour</span>
+              <span className="design-colour-well">
+                <input
+                  type="color"
+                  value={hexOf(design.brim.colour)}
+                  onChange={(e) => updateBrim({ colour: rgbOf(e.target.value) })}
+                />
+                <span className="design-colour-name">
+                  {hexOf(design.brim.colour) === "#ffffff"
+                    ? "White"
+                    : hexOf(design.brim.colour)}
+                </span>
+              </span>
+            </label>
+          </div>
+        )}
+      </div>
+
+      <div className="design-row">
+        <NeedlesField
+          label="Needles for the hat"
+          value={design.needles}
+          onChange={(needles) =>
+            update({
+              needles,
+              brim: { ...design.brim, needles: brimNeedlesFor(needles) },
+            })
+          }
+        />
+        {design.brim.rounds > 0 && (
+          <NeedlesField
+            label="For the brim"
+            value={design.brim.needles}
+            onChange={(needles) => updateBrim({ needles })}
+          />
+        )}
+      </div>
+
+      <p className="design-hint design-brim-note">
+        {design.brim.rounds > 0 ? (
+          <>
+            Cast on {brimStitchesFor(design.stitchesPerRow)} stitches in the
+            brim colour on {design.brim.needles}mm needles and work{" "}
+            {Math.max(design.brim.rounds - 2, 0)} rounds of k2, p2 rib. Its
+            last round is knitted, making{" "}
+            {design.stitchesPerRow - brimStitchesFor(design.stitchesPerRow)}{" "}
+            stitches to bring it to {design.stitchesPerRow}. Then change to{" "}
+            {design.needles}mm needles and the hat&rsquo;s own yarns, where the
+            map begins: the brim is no part of it.
+          </>
+        ) : (
+          <>No brim: the map goes all the way to the cast-on edge.</>
+        )}
+      </p>
 
       <ToggleAdvancedOptions
         showAdvancedOptions={showAdvancedOptions}

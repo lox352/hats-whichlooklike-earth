@@ -2,6 +2,9 @@ import type { RGB } from "../types/RGB";
 import type { Palette } from "../reading/palette";
 import { earthColours, yarnKey, type YarnChoices } from "../helpers/yarn-preference";
 
+/** The brim's yarn: one slot, whatever colour it was knitted in. See hat-knitting. */
+export const trimSlot = "T";
+
 /**
  * The hat's yarns as the knitting machinery names them: a letter each, as a
  * pattern's key does - A for the ocean, B the land, C the glaciers, D the
@@ -23,13 +26,17 @@ export const slotOf = (colour: RGB): string => {
   return at >= 0 ? letters[at] : hex(colour);
 };
 
-/** What each slot looks like and is called: the knitter's own yarns, and any stray colour as itself. */
-export const paletteFrom = (yarns: YarnChoices, slots: Iterable<string> = []): Palette => {
+/**
+ * What each slot looks like and is called: the knitter's own yarns, the
+ * brim's in the colour it was knitted in, and any stray colour as itself.
+ */
+export const paletteFrom = (yarns: YarnChoices, slots: Iterable<string> = [], trim?: RGB): Palette => {
   const palette: Palette = {};
   earthColours.forEach(({ key, label, colour }, at) => {
     const yarn = yarns[key] ?? { name: label, colour };
     palette[letters[at]] = { name: yarn.name, hex: hex(yarn.colour), approximate: false };
   });
+  if (trim) palette[trimSlot] = { name: "Brim", hex: hex(trim), approximate: false };
   for (const slot of slots) {
     if (!palette[slot] && slot.startsWith("#")) palette[slot] = { name: `Yarn ${slot}`, hex: slot, approximate: false };
   }

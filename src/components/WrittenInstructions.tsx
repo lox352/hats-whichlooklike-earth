@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Stitch } from "../types/Stitch";
-import { instructionsToText, writtenInstructions } from "../helpers/written-instructions";
+import { bySlot, instructionsToText, writtenInstructions } from "../helpers/written-instructions";
+import { hatKnitting } from "../knitting/hat-knitting";
 import { useYarns } from "../useYarns";
 import { paletteFrom } from "../knitting/yarns";
 import { yarnFor } from "../reading/palette";
@@ -24,7 +25,9 @@ const WrittenInstructions: React.FC<WrittenInstructionsProps> = ({ stitches }) =
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const { yarns } = useYarns();
-  const palette = useMemo(() => paletteFrom(yarns, new Set()), [yarns]);
+  const trim = useMemo(() => stitches.find((stitch) => stitch.brim)?.colour, [stitches]);
+  const palette = useMemo(() => paletteFrom(yarns, new Set(), trim), [yarns, trim]);
+  const brimRounds = useMemo(() => hatKnitting(stitches).needleChanges[0], [stitches]);
   const nameOf = useMemo(() => (slot: string) => yarnFor(palette, slot).name, [palette]);
   const rounds = useMemo(() => (open ? writtenInstructions(stitches) : []), [open, stitches]);
 
@@ -47,9 +50,11 @@ const WrittenInstructions: React.FC<WrittenInstructionsProps> = ({ stitches }) =
       {open && (
         <div className="written">
           <p className="written-note">
-            Round 1 is the cast-on. Each round is read as you knit it, from its
-            first stitch. The chart is easier to follow for the picture; this is
-            here for counting and for screen readers.
+            Round 1 is the cast-on
+            {brimRounds ? <>, and rounds 1 to {brimRounds} are the brim</> : null}.
+            Each round is read as you knit it, from its first stitch. The chart
+            is easier to follow for the picture; this is here for counting and
+            for screen readers.
           </p>
           <Button variant="quiet" onClick={copy}>
             Copy every round
@@ -64,19 +69,26 @@ const WrittenInstructions: React.FC<WrittenInstructionsProps> = ({ stitches }) =
                   Round {round.round} <span className="quiet">({round.stitches} sts)</span>
                 </span>
                 <span>
-                  {round.segments.map((segment, position) => (
+                  {bySlot(round.segments).map((group, position) => (
                     <span key={position} className="written-part">
                       {position > 0 && ", "}
                       <span
                         aria-hidden="true"
                         className="written-swatch"
-                        style={{ backgroundColor: yarnFor(palette, segment.slot).hex }}
+                        style={{ backgroundColor: yarnFor(palette, group.slot).hex }}
                       />
-                      {position === 0 ? segment.text : segment.text.charAt(0).toLowerCase() + segment.text.slice(1)} in{" "}
-                      {nameOf(segment.slot)}
+                      {group.texts
+                        .map((text, one) =>
+                          position === 0 && one === 0 ? text : text.charAt(0).toLowerCase() + text.slice(1),
+                        )
+                        .join(", ")}{" "}
+                      in {nameOf(group.slot)}
                     </span>
                   ))}
                   {round.joinAfter && <span className="written-part">, then join in the round</span>}
+                  {round.needlesAfter !== undefined && (
+                    <span className="written-part">, then change to {round.needlesAfter}mm needles</span>
+                  )}
                 </span>
               </li>
             ))}
