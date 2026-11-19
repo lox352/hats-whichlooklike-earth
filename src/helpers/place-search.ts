@@ -1,8 +1,8 @@
 import { Place, places as landmarks } from "../data/places";
 
 /**
- * Search over the places the site knows: some fifty thousand towns and cities
- * from GeoNames (see scripts/build-gazetteer), and a short hand-picked list of
+ * Search over the places the site knows: some sixty thousand towns and cities
+ * from Wikidata (see scripts/build-gazetteer), and a short hand-picked list of
  * the places that are not towns - the poles, Point Nemo, the oceans, the
  * deserts and the peaks - which also stands in while the rest load.
  *

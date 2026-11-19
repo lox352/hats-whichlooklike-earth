@@ -196,15 +196,6 @@
   min-width: 0;
 }
 
-.place-credit {
-  font-size: var(--text-xs);
-  color: var(--ink-faint);
-  margin: 5px 0 0;
-}
-
-.place-credit a {
-  color: inherit;
-}
 
 .place-empty {
   padding: 8px 9px;
