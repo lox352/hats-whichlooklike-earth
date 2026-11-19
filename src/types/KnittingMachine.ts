@@ -4,6 +4,7 @@ import { StitchType } from "./StitchType";
 import { RGB } from "../types/RGB";
 import { adjacentStitchDistance, verticalStitchDistance } from "../constants";
 import seedrandom from "seedrandom";
+import { minimumBrimRounds } from "../helpers/brim";
 
 const defaultColour: RGB = [255, 255, 255];
 
@@ -17,7 +18,7 @@ export const minimumStitchesPerRow = 20;
 export const minimumNumberOfRows = 3;
 
 export interface DesignProblem {
-  field: "stitchesPerRow" | "numberOfRows";
+  field: "stitchesPerRow" | "numberOfRows" | "brimRounds";
   message: string;
 }
 
@@ -28,7 +29,9 @@ export interface DesignProblem {
 export const validateDesign = (
   stitchesPerRow: number,
   numberOfRows: number,
-  decreaseMethod: DecreaseMethod
+  decreaseMethod: DecreaseMethod,
+  /** Rounds of brim, 0 for none: see helpers/brim. */
+  brimRounds = 0
 ): DesignProblem[] => {
   const problems: DesignProblem[] = [];
 
@@ -57,12 +60,28 @@ export const validateDesign = (
     });
   }
 
+  if (
+    !Number.isInteger(brimRounds) ||
+    (brimRounds !== 0 && brimRounds < minimumBrimRounds)
+  ) {
+    problems.push({
+      field: "brimRounds",
+      message: `A brim needs at least ${minimumBrimRounds} rounds: casting on, a round of rib and the round that increases. Or 0 for none.`,
+    });
+  }
+
   return problems;
 };
 
 class KnittingMachine {
   private stitchesPerRow: number;
   private rng: () => number;
+  /**
+   * The last stitch of the round below taken onto the needle and worked: the
+   * next stitch knitted works into the one after it. Kept rather than read
+   * off the last stitch's links, because a make-one takes nothing from below.
+   */
+  private consumed = 0;
   stitches: Stitch[];
 
   constructor(stitchesPerRow: number) {
@@ -72,9 +91,11 @@ class KnittingMachine {
   }
 
   castOnRow(
-    getStitchPosition: (stitchNumber: number) => Point
+    getStitchPosition: (stitchNumber: number) => Point,
+    /** How many to cast on: the hat's own count, or a brim's fewer. */
+    count = this.stitchesPerRow
   ): KnittingMachine {
-    for (let i = 0; i < this.stitchesPerRow; i++) {
+    for (let i = 0; i < count; i++) {
       const links = i == 0 ? [] : [i - 1];
       const newStitch: Stitch = {
         id: i,
@@ -96,6 +117,7 @@ class KnittingMachine {
       .map((stitchType) => {
         switch (stitchType) {
           case "k1":
+          case "p1":
             return 1 as number;
           case "k2tog":
             return 2 as number;
@@ -122,6 +144,12 @@ class KnittingMachine {
       case "k1":
         this.knit1();
         break;
+      case "p1":
+        this.knit1("p1");
+        break;
+      case "m1":
+        this.makeOne();
+        break;
       case "k2tog":
         this.knit2Tog();
         break;
@@ -136,11 +164,11 @@ class KnittingMachine {
     return this;
   }
 
-  knit1(): KnittingMachine {
+  knit1(type: "k1" | "p1" = "k1"): KnittingMachine {
     const stitchesInCurrentRow = this.numberOfStitchesInRow();
     const lastStitch = this.stitches[this.stitches.length - 1];
 
-    const stitchFromLastRow = this.stitches[lastStitch.links[0]];
+    const stitchFromLastRow = this.stitches[this.consumed];
     const links = [stitchFromLastRow.id + 1, lastStitch.id];
 
     const linkedStitch = this.stitches[links[0]];
@@ -158,13 +186,68 @@ class KnittingMachine {
       id: lastStitch.id + 1,
       position: newPosition,
       links: links,
-      type: "k1",
+      type,
       fixed: false,
       colour: defaultColour,
     };
 
     this.stitches.push(newStitch);
+    this.consumed = links[0];
 
+    return this;
+  }
+
+  /**
+   * Make a stitch between two, out of nothing below: the strand between the
+   * stitch just worked and the next. It takes nothing from the round below,
+   * so the round grows by one; its first link is to the stitch below the bar
+   * it hangs from, which takes nothing off the needle but holds it up.
+   */
+  makeOne(): KnittingMachine {
+    const stitchesInCurrentRow = this.numberOfStitchesInRow() + 1;
+    const lastStitch = this.stitches[this.stitches.length - 1];
+    // Where the next stitch will be worked: the new one sits over the gap before it.
+    const below = this.stitches[this.consumed + 1] ?? this.stitches[this.consumed];
+    const radiusScaleFactor =
+      (adjacentStitchDistance * stitchesInCurrentRow) /
+      (2 * Math.PI) /
+      (below.position.x ** 2 + below.position.z ** 2) ** 0.5;
+    this.stitches.push({
+      id: lastStitch.id + 1,
+      position: {
+        y: below.position.y + verticalStitchDistance,
+        x: below.position.x * radiusScaleFactor,
+        z: below.position.z * radiusScaleFactor,
+      },
+      // Drawn up from the bar after the stitch below just worked, which holds it up; then the yarn from the last.
+      links: [this.consumed, lastStitch.id],
+      type: "m1",
+      fixed: false,
+      colour: defaultColour,
+    });
+    return this;
+  }
+
+  /** Rounds of knit two, purl two: a brim's rib. */
+  rib(rounds: number): KnittingMachine {
+    for (let i = 0; i < rounds; i++) this.knitRow(["k1", "k1", "p1", "p1"]);
+    return this;
+  }
+
+  /**
+   * One round knitted, making as many stitches between as it takes to reach
+   * `target`, spread as evenly round it as they go: the round at the top of a
+   * brim that takes its stitches up to the hat's.
+   */
+  increaseTo(target: number): KnittingMachine {
+    const from = this.numberOfStitchesInRow();
+    const more = Math.max(target - from, 0);
+    // Half a repeat in, so the round reads "k4, m1, (k9, m1) to the last 5, k5" and no make-one sits at the marker.
+    const at = (i: number) => Math.floor((i * more + Math.floor(from / 2)) / from);
+    for (let i = 0; i < from; i++) {
+      this.knit1();
+      if (at(i + 1) > at(i)) this.makeOne();
+    }
     return this;
   }
 
@@ -172,7 +255,7 @@ class KnittingMachine {
     const stitchesInCurrentRow = this.numberOfStitchesInRow() - 1;
     const lastStitch = this.stitches[this.stitches.length - 1];
 
-    const stitchFromLastRow = this.stitches[lastStitch.links[0]];
+    const stitchFromLastRow = this.stitches[this.consumed];
     const links = [
       stitchFromLastRow.id + 2,
       stitchFromLastRow.id + 1,
@@ -200,6 +283,7 @@ class KnittingMachine {
     };
 
     this.stitches.push(newStitch);
+    this.consumed = links[0];
 
     return this;
   }
@@ -208,7 +292,7 @@ class KnittingMachine {
     const stitchesInCurrentRow = this.numberOfStitchesInRow() - 2;
     const lastStitch = this.stitches[this.stitches.length - 1];
 
-    const stitchFromLastRow = this.stitches[lastStitch.links[0]];
+    const stitchFromLastRow = this.stitches[this.consumed];
     const links = [
       stitchFromLastRow.id + 3,
       stitchFromLastRow.id + 2,
@@ -237,6 +321,7 @@ class KnittingMachine {
     };
 
     this.stitches.push(newStitch);
+    this.consumed = links[0];
 
     return this;
   }
@@ -252,6 +337,7 @@ class KnittingMachine {
       colour: defaultColour,
     };
     this.stitches.push(newStitch);
+    this.consumed = 0;
 
     return this;
   }
@@ -342,9 +428,10 @@ class KnittingMachine {
     this.knitRow(segment);
   }
 
+  /** The stitches on the needle: everything made since the last stitch taken from below. */
   private numberOfStitchesInRow(): number {
     const finalStitch = this.stitches[this.stitches.length - 1];
-    return finalStitch.id - this.stitches[finalStitch.links[0]].id;
+    return finalStitch.id - this.consumed;
   }
 }
 

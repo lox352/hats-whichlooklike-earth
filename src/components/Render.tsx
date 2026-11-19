@@ -5,6 +5,7 @@ import { Stitch } from "../types/Stitch";
 import { getStitches } from "../helpers/stitches";
 import { validateDesign } from "../types/KnittingMachine";
 import { designFromSearchParams, designKey } from "../helpers/design-url";
+import { brimOf } from "../types/HatDesign";
 import { cacheDyedHat, readDyedHat } from "../helpers/design-session";
 import PageLayout from "./ui/PageLayout";
 import Button from "./ui/Button";
@@ -82,7 +83,8 @@ const Render: React.FC<RenderProps> = ({ stitches, setStitches }) => {
       validateDesign(
         design.stitchesPerRow,
         design.numberOfRows,
-        design.decreaseMethod
+        design.decreaseMethod,
+        design.brim.rounds
       ).length > 0
     ) {
       navigate(`/design?${searchParams.toString()}`, { replace: true });
@@ -96,7 +98,8 @@ const Render: React.FC<RenderProps> = ({ stitches, setStitches }) => {
       getStitches(
         design.stitchesPerRow,
         design.numberOfRows,
-        design.decreaseMethod
+        design.decreaseMethod,
+        { brim: brimOf(design), needles: design.needles }
       )
     );
   }, [key, design, navigate, searchParams, setStitches]);

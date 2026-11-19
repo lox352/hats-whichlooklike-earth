@@ -191,7 +191,19 @@
 .place-option-region {
   color: var(--ink-faint);
   font-size: var(--text-xs);
-  white-space: nowrap;
+  /* "Western Australia, Australia" is long; it gives way before the name does. */
+  text-align: right;
+  min-width: 0;
+}
+
+.place-credit {
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  margin: 5px 0 0;
+}
+
+.place-credit a {
+  color: inherit;
 }
 
 .place-empty {
@@ -247,4 +259,39 @@
   .design-checkbox {
     min-height: 44px;
   }
+}
+
+/* The brim's colour: a swatch to tap, and what it is called. */
+.design-colour-well {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+}
+
+.design-colour-well input[type="color"] {
+  width: 44px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm, 6px);
+  background: none;
+  cursor: pointer;
+}
+
+.design-colour-name {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.design-brim-note {
+  max-width: 620px;
+  margin: -4px 0 18px;
+  font-size: var(--text-sm);
+}
+
+/* A button on a row of fields, sitting level with the inputs. */
+.design-field-button {
+  align-self: flex-end;
 }

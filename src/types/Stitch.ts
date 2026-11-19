@@ -18,4 +18,15 @@ export interface Stitch {
    * is no working it out afterwards: those hats simply go unlabelled.
    */
   region?: string;
+  /**
+   * Part of the brim: knitted in the trim and on the smaller needles, and no
+   * part of the picture, which is projected onto the rest of the hat.
+   */
+  brim?: true;
+  /**
+   * The needles it is knitted on, in millimetres, where they change: on the
+   * first stitch cast on, and on the first stitch after the brim. Absent on
+   * hats knitted before there was a brim.
+   */
+  needles?: number;
 }

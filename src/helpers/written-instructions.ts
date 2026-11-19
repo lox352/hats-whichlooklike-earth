@@ -30,7 +30,18 @@ export interface RoundInstruction {
   segments: InstructionSegment[];
   /** Whether the round is joined into a ring after it: the cast-on. */
   joinAfter: boolean;
+  /** The needles changed to after it, in millimetres: after a brim. */
+  needlesAfter?: number;
 }
+
+/** A round's segments, those in one yarn after another together, so the yarn is said once: "knit 5, m1, knit 8 in Brim". */
+export const bySlot = (segments: InstructionSegment[]): { slot: string; texts: string[] }[] =>
+  segments.reduce<{ slot: string; texts: string[] }[]>((groups, segment) => {
+    const last = groups[groups.length - 1];
+    if (last && last.slot === segment.slot) last.texts.push(segment.text);
+    else groups.push({ slot: segment.slot, texts: [segment.text] });
+    return groups;
+  }, []);
 
 export const writtenInstructions = (hat: Stitch[]): RoundInstruction[] => {
   const knitting = hatKnitting(hat);
@@ -40,21 +51,29 @@ export const writtenInstructions = (hat: Stitch[]): RoundInstruction[] => {
       "run" in part ? [{ text: runInstruction(part.run), slot: part.run.slot, count: part.run.length }] : [],
     );
     const last = ids[ids.length - 1] ?? 0;
+    const change = knitting.needleChanges.includes(at + 1)
+      ? knitting.stitches.find((stitch) => stitch.type === "needles" && stitch.id > last)?.needles
+      : undefined;
     return {
       round: at + 1,
       stitches: ids.length,
       segments,
       joinAfter: knitting.stitches[last + 1]?.type === "join",
+      ...(change === undefined ? {} : { needlesAfter: change }),
     };
   });
 };
 
 /** One round as a single line, given a way to name each yarn. */
 export const roundToText = (round: RoundInstruction, nameOf: (slot: string) => string): string => {
-  const parts = round.segments.map(
-    (segment, at) => `${at === 0 ? segment.text : segment.text.charAt(0).toLowerCase() + segment.text.slice(1)} in ${nameOf(segment.slot)}`,
+  const lower = (text: string) => text.charAt(0).toLowerCase() + text.slice(1);
+  const parts = bySlot(round.segments).map(
+    ({ slot, texts }, at) => `${texts.map((text, one) => (at === 0 && one === 0 ? text : lower(text))).join(", ")} in ${nameOf(slot)}`,
   );
-  return `Round ${round.round} (${round.stitches} sts): ${parts.join(", ")}.${round.joinAfter ? " Join in the round." : ""}`;
+  const after = `${round.joinAfter ? " Join in the round." : ""}${
+    round.needlesAfter === undefined ? "" : ` Change to ${round.needlesAfter}mm needles.`
+  }`;
+  return `Round ${round.round} (${round.stitches} sts): ${parts.join(", ")}.${after}`;
 };
 
 /** The whole pattern as plain text, for copying or a screen reader. */

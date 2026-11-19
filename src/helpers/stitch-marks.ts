@@ -1,7 +1,7 @@
 import { StitchType } from "../types/StitchType";
 
 /*
- * The decrease marks, in one place.
+ * The decrease marks, in one place - and the brim's purls and make-ones.
  *
  * The screen chart drew these with rotated one-pixel borders and the exported
  * SVG with paths, so the same stitch had two different symbols: three legs on
@@ -53,6 +53,16 @@ export const stitchMarkPath = (
       `M${left} ${bottom}L${middle} ${top}L${right} ${bottom}` +
       `M${middle} ${top}L${middle} ${bottom}`
     );
+  }
+  // A purl: a dot in the middle, as the screen chart draws one.
+  if (type === "p1") {
+    const r = round(size * 0.07);
+    const cy = round(y + size / 2);
+    return `M${round(middle - r)} ${cy}a${r} ${r} 0 1 0 ${round(2 * r)} 0a${r} ${r} 0 1 0 ${round(-2 * r)} 0`;
+  }
+  // A make-one: an M, as patterns write it.
+  if (type === "m1") {
+    return `M${left} ${bottom}L${left} ${top}L${middle} ${round(y + size / 2)}L${right} ${top}L${right} ${bottom}`;
   }
   return undefined;
 };

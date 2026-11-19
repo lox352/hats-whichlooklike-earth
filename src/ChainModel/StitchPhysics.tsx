@@ -4,7 +4,7 @@ import StitchInstances from "./StitchInstances";
 import Link from "./Link";
 import { RapierRigidBody } from "@react-three/rapier";
 import { Stitch } from "../types/Stitch";
-import { colourNodes } from "../helpers/node-colouring";
+import { colourHat } from "../helpers/node-colouring";
 import { dyeOrderFromHeights, heightsOf } from "../helpers/dye-sweep";
 import {
   adjacentStitchDistance,
@@ -129,7 +129,9 @@ const StitchPhysics: React.FC<StitchPhysicsProps> = ({
           stitchRef.current?.translation() ?? stitches[index].position
       );
 
-      const { colours, regions } = await colourNodes(
+      // Only the hat above the brim is a picture of anything: see helpers/brim.
+      const { colours, regions } = await colourHat(
+        stitches,
         positions,
         orientationParameters
       );

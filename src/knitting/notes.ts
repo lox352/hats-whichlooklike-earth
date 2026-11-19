@@ -2,8 +2,8 @@ import type { StitchKeyId, StitchNote } from "../pattern/design";
 
 /**
  * What a hat says about its stitches, where the key's own words are a
- * sweater's: the cast-on is the brim, not the neck, and the decreases are
- * the crown's.
+ * sweater's: the cast-on is the brim, not the neck, the rib and the
+ * make-ones are the brim's, and the decreases are the crown's.
  */
 export const hatStitchNotes: Partial<Record<StitchKeyId, StitchNote>> = {
   castOn: {
@@ -19,6 +19,14 @@ export const hatStitchNotes: Partial<Record<StitchKeyId, StitchNote>> = {
       "Let the thumb loop go and spread thumb and finger to snug the new stitch up on the needle - snug, not tight. Repeat until all are on.",
       "Where the chart changes yarn along the bottom row, change the yarn over your forefinger and keep the tail, so the brim's colours start where they should.",
     ],
+  },
+  p1: {
+    note: "The brim's rib: knit two, purl two, all the way round, on the smaller needles.",
+  },
+  m1: {
+    note:
+      "The brim's last round: each makes a stitch between two, so the brim's " +
+      "fewer stitches come up to the hat's before the picture begins.",
   },
   k2tog: {
     note: "The crown's decreases: they draw the top of the hat in.",

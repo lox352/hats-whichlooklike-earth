@@ -13,11 +13,13 @@ import {
   defaultNumberOfRows,
   defaultStitchesPerRow,
   defaultDecreaseMethod,
+  defaultBrimRounds,
   isValidGauge,
   rowsFor,
   stitchesPerRowFor,
 } from "./sizing";
-import { pyramidalBase, validateDesign } from "../types/KnittingMachine";
+import { minimumNumberOfRows, pyramidalBase, validateDesign } from "../types/KnittingMachine";
+import { hatKnitting } from "../knitting/hat-knitting";
 
 import { getStitches } from "./stitches";
 import { indexRows } from "./knitting-progress";
@@ -170,11 +172,17 @@ describe("defaults agree with each other", () => {
       defaultStitchesPerRow,
       defaultNumberOfRows,
       defaultGauge,
-      defaultDecreaseMethod
+      defaultDecreaseMethod,
+      defaultBrimRounds
     );
     expect(height).toBeGreaterThan(15.5);
     expect(height).toBeLessThan(24);
     expect(height).toBeCloseTo(hatHeightFromArc(defaultOverTheTop), 0);
+  });
+
+  it("the default brim is a beanie's, about 5cm, and leaves the hat a body", () => {
+    expect((defaultBrimRounds / defaultGauge.rowsPer10cm) * 10).toBeCloseTo(5, 0);
+    expect(defaultNumberOfRows).toBeGreaterThan(minimumNumberOfRows);
   });
 
   it("the default stitch count is valid for both crown shapes", () => {
@@ -277,5 +285,26 @@ describe("sizing by finished height", () => {
     const short = bodyRowsForHeight(17, 120, defaultGauge, "Pyramidal");
     const tall = bodyRowsForHeight(26, 120, defaultGauge, "Pyramidal");
     expect(tall).toBeGreaterThan(short);
+  });
+});
+
+describe("a brim in the dimensions", () => {
+  it.each([
+    [130, 12, "Pyramidal", 13],
+    [130, 12, "Pyramidal", 0],
+    [96, 20, "Hemispherical", 10],
+    [150, 5, "Pyramidal", 3],
+  ] as const)("counts every round of %i stitches, %i rows, %s, %i of brim", (across, rows, method, brim) => {
+    const hat = getStitches(across, rows, method, brim > 0 ? { brim: { rounds: brim, needles: 3.5, colour: [255, 255, 255] } } : {});
+    expect(totalRowsFor(across, rows, method, brim)).toBe(hatKnitting(hat).rounds.length);
+  });
+
+  it("takes the brim out of the body, not the crown", () => {
+    const without = bodyRowsForHeight(20, 130, defaultGauge, "Pyramidal");
+    expect(bodyRowsForHeight(20, 130, defaultGauge, "Pyramidal", 13)).toBe(without - 13);
+    expect(totalHeightFor(130, without - 13, defaultGauge, "Pyramidal", 13)).toBeCloseTo(
+      totalHeightFor(130, without, defaultGauge, "Pyramidal"),
+      6
+    );
   });
 });

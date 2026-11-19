@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { northPole, southPole } from "../constants";
 import DestinationType from "../types/DestinationType";
 import { GlobalCoordinates } from "../types/GlobalCoordinates";
 import { HatDesign } from "../types/HatDesign";
@@ -16,6 +15,9 @@ import {
 import { Gauge } from "../helpers/sizing";
 import { readGauge } from "../helpers/gauge-preference";
 import InputField from "./InputField";
+import NeedlesField from "./NeedlesField";
+import { brimNeedlesFor, brimStitchesFor } from "../helpers/brim";
+import { RGB } from "../types/RGB";
 import CoordinatesInput from "./CoordinatesInput";
 import ToggleAdvancedOptions from "./ToggleAdvancedOptions";
 import ShareDesignLink from "./ShareDesignLink";
@@ -25,21 +27,12 @@ import PageLayout from "./ui/PageLayout";
 import Button from "./ui/Button";
 import "./Design.css";
 
-type LocationType =
-  | "North Pole"
-  | "South Pole"
-  | "Current Location"
-  | "Custom Location";
+const hexOf = (colour: RGB) =>
+  `#${colour.map((channel) => Math.round(channel).toString(16).padStart(2, "0")).join("")}`;
 
-const sameCoordinates = (a: GlobalCoordinates, b: GlobalCoordinates) =>
-  Math.abs(a.latitude - b.latitude) < 0.005 &&
-  Math.abs(a.longitude - b.longitude) < 0.005;
-
-/** Which preset, if any, the current coordinates correspond to. */
-const locationTypeFor = (coordinates: GlobalCoordinates): LocationType => {
-  if (sameCoordinates(coordinates, northPole)) return "North Pole";
-  if (sameCoordinates(coordinates, southPole)) return "South Pole";
-  return "Custom Location";
+const rgbOf = (hex: string): RGB => {
+  const value = parseInt(hex.replace("#", ""), 16);
+  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
 };
 
 const problemFor = (
@@ -62,9 +55,6 @@ const Design: React.FC = () => {
   );
   const params = useMemo(() => designToSearchParams(design), [design]);
 
-  const [locationType, setLocationType] = useState<LocationType>(() =>
-    locationTypeFor(design.orientation.coordinates)
-  );
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [showProblems, setShowProblems] = useState(false);
   const [gauge, setGauge] = useState<Gauge>(() => readGauge());
@@ -82,10 +72,14 @@ const Design: React.FC = () => {
       validateDesign(
         design.stitchesPerRow,
         design.numberOfRows,
-        design.decreaseMethod
+        design.decreaseMethod,
+        design.brim.rounds
       ),
     [design]
   );
+
+  const updateBrim = (changes: Partial<HatDesign["brim"]>) =>
+    update({ brim: { ...design.brim, ...changes } });
 
   const update = (changes: Partial<HatDesign>) =>
     setSearchParams(designToSearchParams({ ...design, ...changes }), {
@@ -98,30 +92,25 @@ const Design: React.FC = () => {
   const setCoordinates = (coordinates: GlobalCoordinates) =>
     updateOrientation({ coordinates });
 
-  const handleLocationChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selected = e.target.value as LocationType;
-    setLocationType(selected);
-    setPlaceLabel(null);
+  const [locating, setLocating] = useState<string | null>(null);
 
-    switch (selected) {
-      case "North Pole":
-        setCoordinates(northPole);
-        break;
-      case "South Pole":
-        setCoordinates(southPole);
-        break;
-      case "Current Location":
-        navigator.geolocation.getCurrentPosition((position) =>
-          setCoordinates({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          })
-        );
-        break;
-      case "Custom Location":
-      default:
-        break;
-    }
+  // Where the knitter is: the one place no list can offer.
+  const locate = () => {
+    setLocating("Finding where you are…");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCoordinates({
+          latitude: Math.round(position.coords.latitude * 100) / 100,
+          longitude: Math.round(position.coords.longitude * 100) / 100,
+        });
+        setPlaceLabel("where you are now");
+        setLocating(null);
+      },
+      () =>
+        setLocating(
+          "Your location is not available. Search for a place, or type its coordinates."
+        )
+    );
   };
 
   const handleKnitAndDye = () => {
@@ -149,9 +138,14 @@ const Design: React.FC = () => {
         stitchesPerRow={design.stitchesPerRow}
         numberOfRows={design.numberOfRows}
         decreaseMethod={design.decreaseMethod}
-        onSize={(stitchesPerRow, numberOfRows) => {
+        brimRounds={design.brim.rounds}
+        onSize={(stitchesPerRow, numberOfRows, brimRounds) => {
           setShowProblems(false);
-          update({ stitchesPerRow, numberOfRows });
+          update({
+            stitchesPerRow,
+            numberOfRows,
+            brim: { ...design.brim, rounds: brimRounds },
+          });
         }}
       />
 
@@ -174,6 +168,78 @@ const Design: React.FC = () => {
         />
       </div>
 
+      <h2 className="design-section-heading" style={{ marginTop: "10px" }}>
+        Brim
+      </h2>
+
+      <div className="design-row">
+        <InputField
+          label="Rounds of brim"
+          value={design.brim.rounds}
+          valueSetter={(rounds) => updateBrim({ rounds })}
+          min={0}
+          problem={
+            showProblems ? problemFor(problems, "brimRounds") : undefined
+          }
+        />
+        {design.brim.rounds > 0 && (
+          <div className="design-field">
+            <label className="design-colour">
+              <span className="design-field-label">Brim colour</span>
+              <span className="design-colour-well">
+                <input
+                  type="color"
+                  value={hexOf(design.brim.colour)}
+                  onChange={(e) => updateBrim({ colour: rgbOf(e.target.value) })}
+                />
+                <span className="design-colour-name">
+                  {hexOf(design.brim.colour) === "#ffffff"
+                    ? "White"
+                    : hexOf(design.brim.colour)}
+                </span>
+              </span>
+            </label>
+          </div>
+        )}
+      </div>
+
+      <div className="design-row">
+        <NeedlesField
+          label="Needles for the hat"
+          value={design.needles}
+          onChange={(needles) =>
+            update({
+              needles,
+              brim: { ...design.brim, needles: brimNeedlesFor(needles) },
+            })
+          }
+        />
+        {design.brim.rounds > 0 && (
+          <NeedlesField
+            label="For the brim"
+            value={design.brim.needles}
+            onChange={(needles) => updateBrim({ needles })}
+          />
+        )}
+      </div>
+
+      <p className="design-hint design-brim-note">
+        {design.brim.rounds > 0 ? (
+          <>
+            Cast on {brimStitchesFor(design.stitchesPerRow)} stitches in the
+            brim colour on {design.brim.needles}mm needles and work{" "}
+            {Math.max(design.brim.rounds - 2, 0)} rounds of k2, p2 rib. Its
+            last round is knitted, making{" "}
+            {design.stitchesPerRow - brimStitchesFor(design.stitchesPerRow)}{" "}
+            stitches to bring it to {design.stitchesPerRow}. Then change to{" "}
+            {design.needles}mm needles and the hat&rsquo;s own yarns, where the
+            map begins: the brim is no part of it.
+          </>
+        ) : (
+          <>No brim: the map goes all the way to the cast-on edge.</>
+        )}
+      </p>
+
       <ToggleAdvancedOptions
         showAdvancedOptions={showAdvancedOptions}
         setShowAdvancedOptions={setShowAdvancedOptions}
@@ -191,35 +257,30 @@ const Design: React.FC = () => {
         <PlaceSearch
           onPick={(coordinates, place) => {
             setCoordinates(coordinates);
-            setLocationType(locationTypeFor(coordinates));
             setPlaceLabel(`${place.name}, ${place.region}`);
+            setLocating(null);
           }}
         />
 
-        <div className="design-field">
-          <label>
-            <span className="design-field-label">Or a preset</span>
-            <select value={locationType} onChange={handleLocationChange}>
-              <option value="North Pole">North Pole</option>
-              <option value="South Pole">South Pole</option>
-              <option value="Current Location">Where I am now</option>
-              <option value="Custom Location">Somewhere else</option>
-            </select>
-          </label>
+        <div className="design-row">
+          <CoordinatesInput
+            coordinates={design.orientation.coordinates}
+            setCoordinates={(coordinates) => {
+              setCoordinates(coordinates);
+              setPlaceLabel(null);
+              setLocating(null);
+            }}
+          />
+          <div className="design-field design-field-button">
+            <Button variant="secondary" onClick={locate}>
+              Where I am now
+            </Button>
+          </div>
         </div>
 
-        <CoordinatesInput
-          coordinates={design.orientation.coordinates}
-          setCoordinates={(coordinates) => {
-            setCoordinates(coordinates);
-            setLocationType(locationTypeFor(coordinates));
-            setPlaceLabel(null);
-          }}
-        />
-
-        {placeLabel && (
+        {(placeLabel || locating) && (
           <p className="design-hint" style={{ marginTop: "-8px" }}>
-            Centred on {placeLabel}.
+            {locating ?? `Centred on ${placeLabel}.`}
           </p>
         )}
 

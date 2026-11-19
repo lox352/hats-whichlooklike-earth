@@ -1,6 +1,8 @@
 import DestinationType from "../types/DestinationType";
 import { DecreaseMethod } from "../types/KnittingMachine";
 import { defaultHatDesign, HatDesign } from "../types/HatDesign";
+import { RGB } from "../types/RGB";
+import { brimNeedlesFor } from "./brim";
 
 /**
  * Reads and writes a hat design as URL query parameters, so a design can be
@@ -19,7 +21,21 @@ const keys = {
   longitude: "lon",
   destination: "to",
   newZealand: "nz",
+  needles: "ndl",
+  brimRounds: "brim",
+  brimNeedles: "bndl",
+  trim: "trim",
 } as const;
+
+const hexOf = (colour: RGB): string =>
+  colour.map((channel) => Math.round(channel).toString(16).padStart(2, "0")).join("");
+
+const colourOf = (raw: string | null): RGB | undefined => {
+  const match = raw ? /^#?([0-9a-f]{6})$/i.exec(raw) : null;
+  if (!match) return undefined;
+  const value = parseInt(match[1], 16);
+  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
+};
 
 const decreaseMethods: DecreaseMethod[] = ["Hemispherical", "Pyramidal"];
 const destinations: DestinationType[] = ["crown", "front", "rim"];
@@ -51,6 +67,10 @@ export const designToSearchParams = (design: HatDesign): URLSearchParams => {
   );
   params.set(keys.destination, design.orientation.targetDestination);
   params.set(keys.newZealand, design.orientation.displayNewZealand ? "1" : "0");
+  params.set(keys.needles, String(design.needles));
+  params.set(keys.brimRounds, String(design.brim.rounds));
+  params.set(keys.brimNeedles, String(design.brim.needles));
+  params.set(keys.trim, hexOf(design.brim.colour));
   return params;
 };
 
@@ -72,6 +92,20 @@ export const designFromSearchParams = (
 
   const newZealandRaw = params.get(keys.newZealand);
 
+  /*
+   * A link from before there were brims has a stitch count and no brim: it
+   * is for a hat with none, and still makes one. Only a link with nothing in
+   * it at all takes the brim a new design starts with.
+   */
+  const brimRaw = params.get(keys.brimRounds);
+  const brimRounds =
+    brimRaw === null
+      ? params.has(keys.stitchesPerRow)
+        ? 0
+        : fallback.brim.rounds
+      : Math.round(readNumber(params, keys.brimRounds, fallback.brim.rounds, 0, 400));
+  const needles = readNumber(params, keys.needles, fallback.needles, 1, 25);
+
   return {
     // Generous bounds: validateDesign reports the real limits to the user, so
     // clamping here only needs to keep the numbers sane.
@@ -82,6 +116,18 @@ export const designFromSearchParams = (
       readNumber(params, keys.numberOfRows, fallback.numberOfRows, 0, 2000)
     ),
     decreaseMethod,
+    needles,
+    brim: {
+      rounds: brimRounds,
+      needles: readNumber(
+        params,
+        keys.brimNeedles,
+        params.has(keys.needles) ? brimNeedlesFor(needles) : fallback.brim.needles,
+        1,
+        25
+      ),
+      colour: colourOf(params.get(keys.trim)) ?? fallback.brim.colour,
+    },
     orientation: {
       coordinates: {
         latitude: readNumber(
