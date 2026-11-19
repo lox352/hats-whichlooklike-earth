@@ -28,7 +28,8 @@ export const earthColours: { key: string; label: string; colour: RGB }[] = [
   { key: yarnKey(Palette.Blue), label: "Ocean", colour: Palette.Blue },
   { key: yarnKey(Palette.Green), label: "Land", colour: Palette.Green },
   { key: yarnKey(Palette.White), label: "Glacier", colour: Palette.White },
-  { key: yarnKey(Palette.Beige), label: "Ice shelf", colour: Palette.Beige },
+  // Sand: the Sahara, the Arabian and Australian deserts. It was called "Ice shelf" at first, which it never was.
+  { key: yarnKey(Palette.Beige), label: "Desert", colour: Palette.Beige },
 ];
 
 export type YarnChoices = Record<string, Yarn>;
@@ -66,6 +67,18 @@ const sanitiseYarn = (raw: unknown, fallback: Yarn): Yarn => {
   return { name, colour };
 };
 
+/*
+ * Yarns are saved with every name, the defaults included, as soon as any one
+ * is changed. A name still the old default for the sand, "Ice shelf", is the
+ * site's own mistake and not the knitter's choice, so it reads as the yarn's
+ * name now; one the knitter typed is kept.
+ */
+const oldNames: Record<string, string> = { [yarnKey(Palette.Beige)]: "Ice shelf" };
+const renamed = (key: string, yarn: Yarn): Yarn =>
+  oldNames[key] === yarn.name
+    ? { ...yarn, name: earthColours.find((one) => one.key === key)?.label ?? yarn.name }
+    : yarn;
+
 export const readYarns = (): YarnChoices => {
   const defaults = defaultYarns();
   try {
@@ -75,7 +88,7 @@ export const readYarns = (): YarnChoices => {
     return Object.fromEntries(
       earthColours.map(({ key }) => [
         key,
-        sanitiseYarn(parsed[key], defaults[key]),
+        renamed(key, sanitiseYarn(parsed[key], defaults[key])),
       ])
     );
   } catch {

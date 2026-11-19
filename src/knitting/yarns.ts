@@ -4,8 +4,8 @@ import { earthColours, yarnKey, type YarnChoices } from "../helpers/yarn-prefere
 
 /**
  * The hat's yarns as the knitting machinery names them: a letter each, as a
- * pattern's key does - A for the ocean, B the land, C the glaciers, D the ice
- * shelves - in the order the site has always listed them.
+ * pattern's key does - A for the ocean, B the land, C the glaciers, D the
+ * deserts - in the order the site has always listed them.
  *
  * A colour that is none of them, which no hat should have but a pattern saved
  * by some older build might, is its own slot, named by its colour, so it is

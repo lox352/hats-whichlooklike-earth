@@ -28,6 +28,24 @@ describe("defaults", () => {
     const defaults = defaultYarns();
     expect(defaults[yarnKey(Palette.Blue)].name).toBe("Ocean");
     expect(defaults[yarnKey(Palette.Green)].name).toBe("Land");
+    // The sand is the Sahara's, not an ice shelf's.
+    expect(defaults[yarnKey(Palette.Beige)].name).toBe("Desert");
+  });
+
+  it("reads a saved yarn still called by the sand's old name as the desert", () => {
+    const saved = defaultYarns();
+    const sand = yarnKey(Palette.Beige);
+    saved[sand] = { ...saved[sand], name: "Ice shelf" };
+    writeYarns(saved);
+    expect(readYarns()[sand].name).toBe("Desert");
+  });
+
+  it("keeps a name the knitter gave the sand themselves", () => {
+    const saved = defaultYarns();
+    const sand = yarnKey(Palette.Beige);
+    saved[sand] = { ...saved[sand], name: "Oatmeal" };
+    writeYarns(saved);
+    expect(readYarns()[sand].name).toBe("Oatmeal");
   });
 
   it("starts as the earth's own colours", () => {
