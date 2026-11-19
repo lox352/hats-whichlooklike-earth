@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import KnittingSettings from "../KnittingSettings";
 import "./PageLayout.css";
 
 export type Step = "design" | "dye" | "pattern";
@@ -24,6 +25,8 @@ interface PageLayoutProps {
   step?: Step;
   /** Pushed to the right of the masthead when there is no step indicator. */
   aside?: React.ReactNode;
+  /** More classes for the page: "knit-screen", where the chart fills the screen. */
+  className?: string;
   children: React.ReactNode;
 }
 
@@ -40,13 +43,15 @@ const PageLayout: React.FC<PageLayoutProps> = ({
   lede,
   step,
   aside,
+  className,
   children,
 }) => (
-  <div className="page">
+  <div className={["page", className ?? ""].filter(Boolean).join(" ")}>
     <header className="masthead screen-only">
       <Link to="/" className="masthead-title">
         Hats Which Look Like Earth
       </Link>
+      <div className="masthead-end">
       {step ? (
         <nav className="steps" aria-label="Progress">
           {stepOrder.map((name, position) => {
@@ -77,6 +82,8 @@ const PageLayout: React.FC<PageLayoutProps> = ({
       ) : (
         aside
       )}
+      <KnittingSettings />
+      </div>
     </header>
     {showTitle && <h1 className="page-title screen-only">{title}</h1>}
     {lede && <p className="page-lede screen-only">{lede}</p>}

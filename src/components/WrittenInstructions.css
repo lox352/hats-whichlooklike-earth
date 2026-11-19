@@ -1,0 +1,50 @@
+.written {
+  margin-top: 10px;
+  max-width: 760px;
+}
+
+.written-note {
+  font-size: var(--text-sm);
+  color: var(--ink-faint);
+  margin: 0 0 10px;
+}
+
+.written-rounds {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  max-height: 420px;
+  overflow-y: auto;
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+
+.written-rounds li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: baseline;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--rule);
+  font-size: var(--text-sm);
+}
+
+.written-round {
+  min-width: 8.5rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.written-part {
+  white-space: nowrap;
+}
+
+.written-swatch {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 4px;
+  border-radius: var(--radius-small);
+  border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent);
+}

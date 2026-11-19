@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Stitch } from "../types/Stitch";
-import KnittingPattern from "../KnittingPattern";
+import HatChart from "./HatChart";
+import { useHatKnitting } from "../knitting/useHatKnitting";
+import "./KnitScreen.css";
 import ChartActions from "./ChartActions";
 import ChartPrintSheet from "./ChartPrintSheet";
 import YarnChoicesEditor from "./YarnChoices";
@@ -42,7 +44,11 @@ const Pattern: React.FC<PatternProps> = ({ stitches }) => {
     [stitches.length, design]
   );
 
-  const charted = stitches.length > 0 ? stitches : restored ?? [];
+  const charted = useMemo(
+    () => (stitches.length > 0 ? stitches : restored ?? []),
+    [stitches, restored]
+  );
+  const reading = useHatKnitting(charted);
 
   useEffect(() => {
     if (charted.length > 0) return;
@@ -73,8 +79,8 @@ const Pattern: React.FC<PatternProps> = ({ stitches }) => {
       step="pattern"
       lede="Save it to tick stitches off as you knit, or take it away as a file."
     >
-      <div className="screen-only">
-        <KnittingPattern stitches={charted} progress={0} />
+      <div className="screen-only chart-preview">
+        <HatChart hat={charted} reading={reading} progress={0} />
       </div>
       <ChartPrintSheet stitches={charted} title="Hat Pattern" />
 

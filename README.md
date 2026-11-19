@@ -39,6 +39,50 @@ land region falls only on land-coloured stitches and a water region only on
 the ocean blue. A blue stitch is always named as water and a green one always
 as land.
 
+## The knitting machinery
+
+Everything that reads a pattern while it is knitted is
+[Sweat Shop](https://github.com/lox352/sweat-shop)'s, which grew out of this
+site and took it a long way further for jumpers. It is copied in, file for
+file, so it can be copied in again as it moves on:
+
+| Folder | What it is |
+| --- | --- |
+| `src/pattern/` | A stitch and the table of the kinds of stitch and step, which everything reads. |
+| `src/reading/` | What is read off the knitting: the chart's layout, the rounds as counted, runs, the key, yardage. |
+| `src/ui/chart/` | The chart: painted on canvas tiles, columns no stitch in view needs closed up, pinch to zoom, gliding after the stitch, a tapped stitch's bubble. |
+| `src/ui/components/` | The knitting panel, the key, the time a hat has taken and has left. |
+| `src/projects/` | Settings, and the knitting-time log kept from every tap. |
+
+The hat is still made, settled and dyed as it always was. `src/knitting/`
+is where the two meet: `hat-knitting.ts` reads a hat's stitches as Sweat
+Shop reads a jumper's - the cast-on cast on and the join a step of its own
+after it, the double decrease the s2kp it always was, rounds counted from
+the cast-on as the chart has always numbered its rows, so a stitch stands
+exactly where it did on a chart printed before, each yarn a slot letter -
+and the rest of `src/knitting/` is
+the hat's own: its yarns (`yarns.ts`), what it says of its stitches
+(`notes.ts`), the places its stitches land on (`places.ts`), its wool, the
+chart as printed.
+
+Saved patterns are on version 4, which counts progress in those ids, with
+the join a step; older ones are moved on as they are read.
+
+What changed in the copied files, to look for when copying them in again:
+`reading/palette.ts` imports `RGB` from `types/`; `ui/chart/Chart.tsx` tells
+an `onPicked` of the stitch tapped and opens at a `startZoom`;
+`ui/chart/chart-painter.ts` can draw `lines` between stitches over the chart,
+and an `outline` round a set of them; `ui/components/KnittingPanel.tsx`
+takes a `where` and a `finishing`, and says nothing of the middle of the
+back; the stylesheets use this site's names for the type scale and colours.
+
+The pages:
+
+| Address | What it is |
+| --- | --- |
+| `/pattern/:id` | A saved hat: its progress and the chart at the needle, its time and its wool. |
+| `/pattern/:id/chart` | The chart, filling the screen. With `?knitting=1` the knitting panel is open; with `?stats=1`, your time is painted over it. |
+
 ## Running it
 
 ```bash

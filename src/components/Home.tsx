@@ -1,20 +1,23 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { SavedPattern } from "../types/SavedPattern";
 import {
-  knittingParam,
   bareIdFor,
   deletePattern,
   listPatterns,
   patternsChangedEvent,
-  percentComplete,
   renamePattern,
 } from "../helpers/pattern-storage";
+import { useHatKnitting } from "../knitting/useHatKnitting";
+import { chartPath, patternPath, percentKnitted } from "../knitting/paths";
+import { positionOf, totals, whereYouAre } from "../reading/progress";
+import { useKnittingTime } from "../ui/useKnittingTime";
+import { TimeLine } from "../ui/components/KnittingTime";
+import ChartThumb from "./ChartThumb";
 import PageLayout from "./ui/PageLayout";
 import Button from "./ui/Button";
 import Dialog from "./ui/Dialog";
 import NameDialog from "./ui/NameDialog";
-import ProgressRing from "./ProgressRing";
 import { useReveal } from "../useReveal";
 import "./Home.css";
 
@@ -23,8 +26,6 @@ const formatSavedAt = (savedAt: string) =>
     year: "numeric",
     month: "long",
     day: "numeric",
-    hour: "numeric",
-    minute: "numeric",
   });
 
 /** A section that rises into view the first time it is scrolled to. */
@@ -39,6 +40,10 @@ const RevealSection: React.FC<{ children: React.ReactNode }> = ({
   );
 };
 
+/** A colour from the stylesheet, as a canvas needs it. */
+const token = (name: string, fallback: string) =>
+  getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+
 const PatternCard: React.FC<{
   pattern: SavedPattern;
   onRename: () => void;
@@ -46,43 +51,50 @@ const PatternCard: React.FC<{
 }> = ({ pattern, onRename, onDelete }) => {
   const navigate = useNavigate();
   const { ref, shown } = useReveal<HTMLLIElement>();
-  const id = bareIdFor(pattern.id);
-  const percent = percentComplete(pattern);
-  const started = percent > 0;
-  const finished = percent >= 100;
+  const reading = useHatKnitting(pattern.stitches);
+  const position = positionOf(reading.stitches, pattern.progress, reading.index);
+  const counts = totals(reading.index, pattern.progress);
+  const time = useKnittingTime(pattern.id, reading.stitches, pattern.progress);
+  const paper = useMemo(() => token("--paper-raised", "#fbf8f1"), []);
+  const finished = position.finished;
+  const started = counts.worked > 0;
 
   return (
     <li
       ref={ref}
       className={`pattern-card reveal${shown ? " reveal-shown" : ""}`}
     >
+      {/* The hat's own picture, as it is knitted: a tap opens its page. */}
+      <Link to={patternPath(pattern.id)} className="pattern-thumb" aria-label={`Open ${pattern.name ?? "this hat"}`}>
+        <ChartThumb reading={reading} progress={pattern.progress} paper={paper} />
+      </Link>
       <div className="pattern-card-head">
-        <div>
-          <h3 className="pattern-name">{pattern.name ?? "Saved Pattern"}</h3>
-          <div className="pattern-date">
-            {finished ? "Finished" : formatSavedAt(pattern.savedAt)}
-          </div>
+        <h3 className="pattern-name">
+          <Link to={patternPath(pattern.id)}>{pattern.name ?? "Saved Pattern"}</Link>
+        </h3>
+        <div className="pattern-date">
+          {finished
+            ? "Finished"
+            : started
+              ? `${whereYouAre(position)} · ${percentKnitted(counts.worked, counts.percent)} knitted`
+              : `Saved ${formatSavedAt(pattern.savedAt)}`}
         </div>
-        <ProgressRing
-          percent={percent}
-          label={`${percent.toFixed(0)}% knitted`}
-        />
+        <span className="pattern-track" aria-hidden="true">
+          <span style={{ width: `${counts.percent}%` }} />
+        </span>
+        {time && <TimeLine time={time} finished={finished} className="pattern-time" />}
       </div>
       <div className="pattern-card-actions">
         {/* Straight into the knitting, rather than onto a page with another
             button on it saying the same thing. A finished hat is for looking
-            at, so that one lands on the chart. */}
+            at, so that one lands on its page. */}
         <Button
           variant="primary"
-          onClick={() =>
-            navigate(
-              finished ? `/pattern/${id}` : `/pattern/${id}?${knittingParam}=1`
-            )
-          }
+          onClick={() => navigate(finished ? patternPath(pattern.id) : chartPath(pattern.id, true))}
         >
           {finished ? "See it" : started ? "Keep knitting" : "Start knitting"}
         </Button>
-        <Button variant="secondary" onClick={() => navigate(`/render/${id}`)}>
+        <Button variant="secondary" onClick={() => navigate(`/render/${bareIdFor(pattern.id)}`)}>
           See the hat
         </Button>
       </div>
