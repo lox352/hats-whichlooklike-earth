@@ -22,6 +22,12 @@ export const useReveal = <T extends HTMLElement>() => {
     const element = ref.current;
     if (!element) return;
 
+    /*
+     * As soon as any of it is on screen. Waiting until it was well inside the
+     * screen - a twentieth of it, clear of the bottom eighth - left a card
+     * that began near the foot of a phone's screen hidden, the page looking
+     * empty there, until it was scrolled.
+     */
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) {
@@ -29,9 +35,7 @@ export const useReveal = <T extends HTMLElement>() => {
           observer.disconnect();
         }
       },
-      // A little before it reaches the viewport, so it is already settled by
-      // the time it is properly on screen.
-      { rootMargin: "0px 0px -12% 0px", threshold: 0.05 }
+      { threshold: 0 }
     );
 
     observer.observe(element);
