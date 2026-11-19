@@ -167,18 +167,38 @@ const keep = (row, country) => {
 };
 
 const ordered = [...countries.entries()].sort((a, b) => b[1].places - a[1].places);
-let done = 0;
-for (const [country] of ordered) {
-  const before = places.size;
-  for (const row of await settlementsIn(country, 5000)) keep(row, country);
-  for (const row of await capitalsOf(country)) keep(row, country);
+
+/** Everything Wikidata says of one country's settlements, asked four countries at a time; kept in order after. */
+const rowsOf = async (country) => {
+  const sizeable = await settlementsIn(country, 5000);
+  // Capitals and small places are extras: a query for them that fails costs those, not the run.
+  const extra = (rows) => rows.catch((error) => {
+    console.log(`  ${country}: ${error.message}`);
+    return [];
+  });
+  const capitals = await extra(capitalsOf(country));
+  const few = new Set([...sizeable, ...capitals].map((row) => value(row, "place"))).size < 12;
   // A country or territory of today, with few towns: every settlement in it. (Historical states have no ISO code.)
-  if (places.size - before < 12 && countries.get(country).code) {
-    for (const row of await everySettlementIn(country)) keep(row, country);
-  }
-  done += 1;
-  if (done % 20 === 0 || places.size - before > 2000) console.log(`${done}/${ordered.length} ${countryName(country)}: ${places.size} places`);
-}
+  const every = few && countries.get(country).code ? await extra(everySettlementIn(country)) : [];
+  return [...sizeable, ...capitals, ...every];
+};
+const answers = new Array(ordered.length);
+let next = 0;
+let done = 0;
+await Promise.all(
+  Array.from({ length: 4 }, async () => {
+    while (next < ordered.length) {
+      const at = next++;
+      answers[at] = await rowsOf(ordered[at][0]);
+      done += 1;
+      if (done % 25 === 0) console.log(`${done}/${ordered.length} countries asked`);
+    }
+  }),
+);
+ordered.forEach(([country], at) => {
+  for (const row of answers[at]) keep(row, country);
+});
+console.log(`${places.size} settlements`);
 
 // Names for those with neither an English nor a multilingual one, from the languages most likely to have one in Latin letters.
 const unnamed = [...places.values()].filter((place) => !place.name);
