@@ -6,7 +6,10 @@
 
 /* The sheet the whole app is laid out on. */
 .page {
+  /* The page's side and foot padding, which full-width strips reach back across. */
+  --gutter: clamp(16px, 4vw, 40px);
+  --foot: 64px;
   max-width: var(--page-max);
   margin: 0 auto;
-  padding: 0 clamp(16px, 4vw, 40px) 64px;
+  padding: 0 var(--gutter) var(--foot);
 }

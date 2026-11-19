@@ -361,7 +361,54 @@ describe("region labels", () => {
     }
   });
 
-  it("is on version 3, the version that records the region", () => {
-    expect(currentPatternVersion).toBe(3);
+  it("is on version 4, the version that counts the join as a step", () => {
+    expect(currentPatternVersion).toBe(4);
+  });
+});
+
+describe("progress through the join", () => {
+  /** A ring of four cast on and joined, then a round of four knitted into it, as the machine makes them. */
+  const joined = (): Stitch[] => [
+    stitch(0),
+    { ...stitch(1, [0]), fixed: true },
+    { ...stitch(2, [1]), fixed: true },
+    { ...stitch(3, [2]), fixed: true },
+    { ...stitch(4, [0, 3]), fixed: true, type: "join" },
+    stitch(5, [1, 4]),
+    stitch(6, [2, 5]),
+    stitch(7, [3, 6]),
+    stitch(8, [4, 7]),
+  ];
+  const writeOld = (key: string, version: number, progress: number) =>
+    localStorage.setItem(
+      key,
+      JSON.stringify({ version, id: key, savedAt: new Date().toISOString(), stitches: joined(), progress })
+    );
+
+  it("moves a version 3 hat's progress past the join on by the join's step", () => {
+    writeOld("pattern-910", 3, 2);
+    expect(readPattern("pattern-910")?.progress).toBe(2);
+    writeOld("pattern-911", 3, 4);
+    expect(readPattern("pattern-911")?.progress).toBe(5);
+    writeOld("pattern-912", 3, 8);
+    expect(readPattern("pattern-912")?.progress).toBe(9);
+  });
+
+  it("leaves a version 4 hat's progress as it is", () => {
+    writeOld("pattern-913", 4, 4);
+    expect(readPattern("pattern-913")?.progress).toBe(4);
+  });
+
+  it("counts the stitches knitted without the join", () => {
+    const base = { version: currentPatternVersion, id: "pattern-1", savedAt: new Date(0).toISOString(), stitches: joined() };
+    expect(percentComplete({ ...base, progress: 4 })).toBe(50);
+    expect(percentComplete({ ...base, progress: 5 })).toBe(50);
+    expect(percentComplete({ ...base, progress: 9 })).toBe(100);
+  });
+
+  it("lets progress reach the last stitch, one past the hat's own last id", () => {
+    const { pattern } = createPattern(joined(), "Ring");
+    setProgress(pattern.id, 99);
+    expect(readPattern(pattern.id)?.progress).toBe(9);
   });
 });

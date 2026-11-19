@@ -3,6 +3,8 @@ import {
   SavedPattern,
 } from "../types/SavedPattern";
 import { Stitch } from "../types/Stitch";
+import { joinOf, progressFromHat } from "../knitting/hat-knitting";
+import { deleteLog } from "../projects/timing/log";
 
 /**
  * Every read and write of a saved pattern goes through this module.
@@ -91,13 +93,19 @@ const migrate = (
       ? candidate.name
       : undefined;
 
-  const progress =
-    typeof candidate.progress === "number" && Number.isFinite(candidate.progress)
-      ? clampProgress(candidate.progress, stitches.length)
-      : 0;
-
   const version =
     typeof candidate.version === "number" ? candidate.version : 1;
+
+  // Before version 4 progress was counted in the hat's own ids, which have no step for the join.
+  const progress =
+    typeof candidate.progress === "number" && Number.isFinite(candidate.progress)
+      ? clampProgress(
+          version < 4
+            ? progressFromHat(candidate.progress, joinOf(stitches))
+            : candidate.progress,
+          positionsIn(stitches)
+        )
+      : 0;
 
   return {
     version: Math.max(version, currentPatternVersion),
@@ -108,6 +116,14 @@ const migrate = (
     progress,
   };
 };
+
+/**
+ * How many places progress can be at: every stitch, the phantom stitch 0 that
+ * stands for nothing knitted, and joining the round, which is a step of its
+ * own (see knitting/hat-knitting).
+ */
+export const positionsIn = (stitches: Stitch[]): number =>
+  stitches.length + (joinOf(stitches) === undefined ? 0 : 1);
 
 /**
  * Progress is a stitch id, so it is only meaningful within the pattern: the
@@ -131,10 +147,17 @@ export const clampProgress = (
 export const knittableStitchCount = (pattern: SavedPattern): number =>
   Math.max(pattern.stitches.length - 1, 0);
 
+/** How many stitches are knitted: progress, less the join once it is done, which is no stitch. */
+export const stitchesKnitted = (pattern: SavedPattern): number => {
+  const join = joinOf(pattern.stitches);
+  const steps = join !== undefined && pattern.progress > join ? 1 : 0;
+  return Math.min(Math.max(pattern.progress - steps, 0), knittableStitchCount(pattern));
+};
+
 export const percentComplete = (pattern: SavedPattern): number => {
   const knittable = knittableStitchCount(pattern);
   if (knittable === 0) return 0;
-  return Math.min((100 * pattern.progress) / knittable, 100);
+  return Math.min((100 * stitchesKnitted(pattern)) / knittable, 100);
 };
 
 export const readPattern = (
@@ -149,12 +172,31 @@ export const readPattern = (
     return undefined;
   }
   if (!stored) return undefined;
+  const kept = read.get(storageKey);
+  if (kept?.raw === stored) return kept.pattern;
+  let pattern: SavedPattern | undefined;
   try {
-    return migrate(JSON.parse(stored), storageKey);
+    pattern = migrate(JSON.parse(stored), storageKey);
   } catch {
     return undefined;
   }
+  if (!pattern) return undefined;
+  /*
+   * A saved hat's stitches are written once and never change, so the same
+   * hat read again - for progress moved on, or a new name - keeps the same
+   * stitches, and nothing worked out from them is worked out again: the
+   * knitting, the chart, the rounds.
+   */
+  const before = kept?.pattern;
+  if (before && before.savedAt === pattern.savedAt && before.stitches.length === pattern.stitches.length) {
+    pattern = { ...pattern, stitches: before.stitches };
+  }
+  read.set(storageKey, { raw: stored, pattern });
+  return pattern;
 };
+
+/** The last read of each pattern, by key, as it was stored and as it was read. */
+const read = new Map<string, { raw: string; pattern: SavedPattern }>();
 
 /** Newest first. Entries that cannot be read are skipped, not thrown. */
 export const listPatterns = (): SavedPattern[] => {
@@ -174,14 +216,17 @@ export const listPatterns = (): SavedPattern[] => {
 export type WriteResult = { ok: true } | { ok: false; reason: "quota" };
 
 const write = (pattern: SavedPattern): WriteResult => {
+  const raw = JSON.stringify(pattern);
   try {
-    localStorage.setItem(pattern.id, JSON.stringify(pattern));
+    localStorage.setItem(pattern.id, raw);
   } catch (error) {
     if (error instanceof DOMException && error.name === "QuotaExceededError") {
       return { ok: false, reason: "quota" };
     }
     throw error;
   }
+  // Read back as written, without parsing it again.
+  read.set(pattern.id, { raw, pattern });
   notifyPatternsChanged();
   return { ok: true };
 };
@@ -219,8 +264,24 @@ export const setProgress = (
   if (!pattern) return undefined;
   return write({
     ...pattern,
-    progress: clampProgress(progress, pattern.stitches.length),
+    progress: clampProgress(progress, positionsIn(pattern.stitches)),
   });
+};
+
+/**
+ * Move a pattern's progress on (or back), from the pattern as it is held -
+ * without reading it again, which for a hat of ten thousand stitches is most
+ * of the time a tap takes.
+ */
+export const saveProgress = (
+  pattern: SavedPattern,
+  progress: number
+): { result: WriteResult; pattern: SavedPattern } => {
+  const next = {
+    ...pattern,
+    progress: clampProgress(progress, positionsIn(pattern.stitches)),
+  };
+  return { result: write(next), pattern: next };
 };
 
 export const deletePattern = (patternId: string): void => {
@@ -229,7 +290,25 @@ export const deletePattern = (patternId: string): void => {
   } catch {
     return;
   }
+  // And the time it took, which means nothing without it.
+  deleteLog(storageKeyFor(patternId));
+  read.delete(storageKeyFor(patternId));
   notifyPatternsChanged();
+};
+
+/**
+ * A pattern from a backup, saved as a new one beside those already here -
+ * under a key of its own, so nothing is ever overwritten - and read in as any
+ * stored pattern is, migrated forward and checked. Undefined if it could not
+ * be read or saved.
+ */
+export const restorePattern = (
+  raw: unknown,
+  at: number
+): SavedPattern | undefined => {
+  const pattern = migrate(raw, storageKeyFor(String(at)));
+  if (!pattern) return undefined;
+  return write(pattern).ok ? pattern : undefined;
 };
 
 /** Re-persist every readable entry in the current shape. */

@@ -1,0 +1,121 @@
+/*
+ * The paper version of the chart, and what sits at the foot of a chart's page.
+ * See ChartPrintSheet.
+ */
+
+.print-only {
+  display: none;
+}
+
+@media print {
+  /* Landscape: charts are far wider than they are tall. */
+  @page {
+    size: landscape;
+    margin: 10mm;
+  }
+
+  .screen-only {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block;
+  }
+
+  .print-sheet {
+    color: #000;
+    background: #fff;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+  }
+
+  .print-sheet h1 {
+    font-size: 16pt;
+    margin: 0 0 2mm;
+  }
+
+  .print-sheet .print-meta {
+    font-size: 9pt;
+    margin: 0 0 4mm;
+    color: #333;
+  }
+
+  /* Scale the chart to the page rather than clipping it. */
+  .print-sheet svg {
+    width: 100%;
+    height: auto;
+    /* Never split a chart across pages: it is unreadable in two halves. */
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .print-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4mm;
+    margin-top: 4mm;
+    font-size: 9pt;
+  }
+
+  .print-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 1.5mm;
+  }
+
+  .print-legend-swatch {
+    width: 4mm;
+    height: 4mm;
+    border: 0.3mm solid #000;
+    display: inline-block;
+  }
+
+  /* Everywhere the hat is a picture of, under the yarn key it echoes. */
+  .print-region-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1mm 3mm;
+    margin-top: 3mm;
+    font-size: 8pt;
+    color: #333;
+  }
+
+  .print-region-title {
+    font-weight: 600;
+    color: #000;
+  }
+}
+
+/*
+ * Print and download live at the foot of the page. They matter less than
+ * getting on with the knitting, so they should not sit between the chart and
+ * the buttons you actually came for.
+ */
+.chart-extras {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+@media (min-width: 620px) {
+  .chart-extras {
+    margin-top: 30px;
+    padding-top: 18px;
+  }
+}
+
+/* The list of places on the hat, under the button that opens it. */
+.region-index {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  line-height: 1.7;
+  max-width: 62ch;
+  margin: 8px 0 0;
+}
+
+.region-index-name {
+  color: var(--ink);
+}

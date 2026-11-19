@@ -1,6 +1,6 @@
 .masthead {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 20px;
   flex-wrap: wrap;
@@ -34,6 +34,14 @@
 
 .masthead-title:hover {
   color: var(--accent);
+}
+
+/* The steps, and the settings at the far right of every page. */
+.masthead-end {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
 }
 
 /* Where you are in the three steps, as a run of map waypoints. */

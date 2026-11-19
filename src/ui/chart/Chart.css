@@ -1,0 +1,436 @@
+.chart-frame {
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+}
+
+.chart-help { margin: 1rem 0; }
+.chart-help summary { cursor: pointer; min-height: 44px; }
+.chart-help li { margin: .4rem 0; }
+
+.stitch-key {
+  margin: 0.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stitch-key li {
+  display: grid;
+  grid-template-columns: 3.2rem 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  margin: 0;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--rule);
+}
+
+.stitch-key .key-swatch {
+  justify-self: center;
+  margin-top: 0.1rem;
+}
+
+.key-cell {
+  fill: #fff;
+  stroke: var(--ink-faint);
+  stroke-width: 0.04;
+}
+
+.key-mark {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 0.07;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.key-dot {
+  fill: var(--ink);
+}
+
+.stitch-key p {
+  margin: 0.15rem 0 0;
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  max-width: 60ch;
+}
+
+.stitch-abbr {
+  font-size: var(--text-sm);
+  color: var(--ink-faint);
+}
+
+.stitch-key .stitch-note {
+  font-style: italic;
+}
+
+/* A stitch worked step by step - a cast-on - and another way to work it, folded away until asked for. */
+.stitch-how-to summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  color: var(--accent-strong);
+  font-weight: 600;
+  list-style: none;
+}
+
+.stitch-how-to summary span {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.stitch-how-to summary::-webkit-details-marker {
+  display: none;
+}
+
+.stitch-how-to summary::before {
+  content: "\25B8";
+  margin-right: 0.35em;
+}
+
+.stitch-how-to[open] summary::before {
+  content: "\25BE";
+}
+
+.stitch-steps {
+  margin: 0.35rem 0 0;
+  padding-left: 1.3rem;
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  max-width: 60ch;
+}
+
+.stitch-steps li {
+  display: list-item;
+  padding: 0;
+  margin: 0.15rem 0 0;
+  border: 0;
+}
+
+.stitch-alternative {
+  font-style: italic;
+}
+.chart-help select { max-width: 100%; }
+/* Which number is which yarn, where the chart is drawn in white with its yarns numbered: a few close lines, not a list as tall as the chart. */
+.chart-yarn-numbers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 1rem;
+  list-style: none;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  font-size: var(--text-sm);
+  line-height: 1.35;
+}
+
+.chart-yarn-numbers li {
+  white-space: nowrap;
+}
+
+/* The chart scrolls both ways in a window of its own, so zooming it changes what is in the window and never the page. */
+.chart-scroll {
+  /* What the tiles in view are is measured from here. */
+  position: relative;
+  overflow: auto;
+  overscroll-behavior: contain;
+  /* Let a horizontal drag scroll the chart without stealing page scrolling. */
+  touch-action: pan-x pan-y;
+  -webkit-overflow-scrolling: touch;
+  /*
+   * Scrolled across from the right, where a chart is read from: the browser
+   * then holds that edge still as columns open and close to the left of what
+   * is showing. See scroll-corner.ts.
+   */
+  direction: rtl;
+  /*
+   * A chart shorter than its box - zoomed right out - sits at the bottom of
+   * it, where it is read from, rather than the top: see .chart-sheets.
+   */
+}
+
+/*
+ * Its scrollbars put away where they are only indicators: on a touch screen,
+ * and while knitting, when the chart scrolls itself to every stitch. Each
+ * of those scrolls brought them up for a moment across the middle of the
+ * screen, where the box ends above the knitting panel - and while the sheet
+ * keeps its size mid-scroll (see TileView), they show the sheet, not the
+ * chart. The round numbers say where you are. Scrolled with a mouse, the
+ * chart keeps them, to drag.
+ */
+@media (pointer: coarse) {
+  .chart-scroll {
+    scrollbar-width: none;
+  }
+
+  .chart-scroll::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.knit-screen .chart-scroll {
+  scrollbar-width: none;
+}
+
+.knit-screen .chart-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* The chart and the progress over it, stacked: pushed to the bottom of its box where it is shorter, and from the top as ever where it is taller. */
+.chart-sheets {
+  position: relative;
+  direction: ltr;
+
+}
+
+.chart-pickable {
+  cursor: pointer;
+}
+
+/* The stitch a tap picked, and the bubble offering to carry on from it. */
+/*
+ * What floats over the tiles - the stitch picked, and what it says of it -
+ * moved with them as they slide with the box's scroll: see TileView.afloat.
+ */
+/*
+ * What floats over the tiles, clipped to the sheet as the tiles are: slid
+ * with them, often hundreds of pixels, it would otherwise reach past the
+ * sheet, and the box's scroll would reach as far - not where the slide's
+ * keyframes were made for, nor where the browser, scrolling, reads them:
+ * a phone showed the chart jolting, torn and blank. Clipped without
+ * becoming a box that scrolls itself, where the browser can.
+ */
+.chart-afloat-clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  overflow: clip;
+  pointer-events: none;
+}
+
+.chart-afloat {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.chart-afloat > * {
+  pointer-events: auto;
+}
+
+.chart-picked {
+  position: absolute;
+  border: 2px dashed var(--accent);
+  border-radius: var(--radius-small);
+  pointer-events: none;
+}
+
+.stitch-picker {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.6rem 0.7rem 0.75rem;
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
+  cursor: auto;
+}
+
+.stitch-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.stitch-picker-close {
+  width: 32px;
+  height: 32px;
+  margin: -6px -6px -6px 0;
+  border: none;
+  background: none;
+  font-size: var(--text-lg);
+  line-height: 1;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.stitch-picker-note {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+/*
+ * The chart on canvas tiles: each tile placed where its square of the chart
+ * is, and any that hang past the chart's edge cut off, so they never make
+ * the box scroll further than the chart goes.
+ */
+.chart-tiles {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* The layer the tiles are on, moved across the sheet to hold a column still while the columns close up or open. */
+.chart-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.chart-tiles canvas {
+  position: absolute;
+  display: block;
+}
+
+/* The tiles in view and painted ahead of it: see TileView.hot. */
+.chart-hot {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/*
+ * Safari keeps the picture of a layer only while it meets the box - not a
+ * pixel past it - but of every layer inside one with a transform animation
+ * running, wherever they are. A tile painted ahead and scrolled into view
+ * by the browser was otherwise blank until the page next handed its layers
+ * over. So the tiles near the box are kept inside one, its animation going
+ * nowhere: no picture is moved, and none is drawn any larger.
+ */
+.chart-tiles-keep .chart-hot {
+  animation: chart-keep 1s linear infinite;
+}
+
+@keyframes chart-keep {
+  from {
+    transform: translateZ(0);
+  }
+  to {
+    transform: translateZ(0.01px);
+  }
+}
+
+/*
+ * To try on a phone, from `tiles=layered` in the address: each tile a layer
+ * of its own for the browser to put together, painted or not as it comes
+ * into view - should Safari leave a tile painted past the box blank until it
+ * is in it.
+ */
+.chart-tiles-layered canvas {
+  will-change: transform;
+}
+
+/* The stitch to be worked next, outlined over the tiles. */
+.chart-next {
+  position: absolute;
+  z-index: 1;
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  pointer-events: none;
+}
+
+.chart-caption {
+  margin: 0.75rem 0 0;
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  max-width: none;
+}
+
+.stitch-picker-what {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.55rem;
+  align-items: start;
+  font-size: var(--text-sm);
+}
+
+.stitch-picker-what > div:only-child {
+  grid-column: 1 / -1;
+}
+
+.stitch-picker-what p {
+  margin: 0.2rem 0 0;
+  color: var(--ink-soft);
+  line-height: 1.35;
+}
+
+.stitch-picker-yarn,
+.stitch-picker-needles {
+  display: block;
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+}
+
+.stitch-picker-where {
+  display: block;
+  font-weight: 400;
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+}
+
+/* What the round is, on a line of its own beneath its name, begun with a capital. */
+.stitch-picker-where::first-letter {
+  text-transform: uppercase;
+}
+
+/*
+ * The key's swatches for the rounds worked from the other side, a light
+ * hatch, and for stitches on hold, crosshatched two ways so the two never
+ * read alike; the tiles paint the same.
+ */
+.chart-hatch-line {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  opacity: 0.2;
+}
+
+.chart-on-hold-line {
+  stroke: var(--ink);
+  stroke-width: 1.2;
+  opacity: 0.28;
+}
+
+.key-join {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 0.08;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.key-hold {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.key-needles {
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-dasharray: 4 3;
+}
+
+.key-hatch-ground {
+  fill: var(--paper);
+  stroke: var(--ink-faint);
+  stroke-width: 1;
+}
+
+.stitch-picker-face p {
+  margin: 0;
+  color: var(--ink-soft);
+  line-height: 1.35;
+}
+

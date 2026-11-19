@@ -76,7 +76,7 @@ const PatternCard: React.FC<{
           variant="primary"
           onClick={() =>
             navigate(
-              finished ? `/pattern/${id}` : `/pattern/${id}?${knittingParam}=1`
+              finished ? `/pattern/${id}` : `/pattern/${id}/chart?${knittingParam}=1`
             )
           }
         >

@@ -1,5 +1,5 @@
 import "./App.css";
-import "./KnittingPattern.css";
+import "./components/Print.css";
 import { HashRouter as Router, Route, Routes } from "react-router-dom";
 import { useState } from "react";
 import Home from "./components/Home";
@@ -10,6 +10,7 @@ import { Stitch } from "./types/Stitch";
 import { YarnProvider } from "./YarnContext";
 import Pattern from "./components/Pattern";
 import SavedPattern from "./components/SavedPattern";
+import KnitChart from "./components/KnitChart";
 
 /**
  * The design itself lives in the URL (see helpers/design-url), so a design can
@@ -36,6 +37,7 @@ function App() {
         <Route path="/render/:patternId" element={<SavedRender />} />
         <Route path="/pattern" element={<Pattern stitches={stitches} />} />
         <Route path="/pattern/:patternId" element={<SavedPattern />} />
+        <Route path="/pattern/:patternId/chart" element={<KnitChart />} />
       </Routes>
       </Router>
     </YarnProvider>
