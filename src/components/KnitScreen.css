@@ -236,3 +236,16 @@
 .chart-preview {
   margin-bottom: 20px;
 }
+
+/*
+ * The key draws a stitch as a white cell, as on paper, so its mark is drawn
+ * in ink there whatever the theme: by lamplight the ink is light, and would
+ * vanish on it.
+ */
+.key-mark {
+  stroke: #22201c;
+}
+
+.key-dot {
+  fill: #22201c;
+}
