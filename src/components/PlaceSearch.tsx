@@ -1,6 +1,6 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import { GlobalCoordinates } from "../types/GlobalCoordinates";
-import { Place, searchPlaces } from "../helpers/place-search";
+import { loadGazetteer, Place, searchPlaces } from "../helpers/place-search";
 
 interface PlaceSearchProps {
   onPick: (coordinates: GlobalCoordinates, place: Place) => void;
@@ -9,9 +9,11 @@ interface PlaceSearchProps {
 /**
  * Find somewhere by name instead of typing coordinates.
  *
- * Searches the bundled gazetteer, so there is no network request and it works
- * offline. Implemented as a listbox with keyboard support, because picking
- * from a dropdown with the arrow keys is the normal way to use one of these.
+ * Searches some fifty thousand places from GeoNames, fetched as one file the
+ * first time the field is used (see helpers/place-search); until it is in,
+ * the hand-picked landmarks answer. Implemented as a listbox with keyboard
+ * support, because picking from a dropdown with the arrow keys is the normal
+ * way to use one of these.
  */
 const PlaceSearch: React.FC<PlaceSearchProps> = ({ onPick }) => {
   const [query, setQuery] = useState("");
@@ -20,7 +22,17 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({ onPick }) => {
   const listId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const results = useMemo(() => searchPlaces(query), [query]);
+  // Bumped when the full list arrives, so the results are searched again.
+  const [loaded, setLoaded] = useState(0);
+  const [failed, setFailed] = useState(false);
+  const load = () => {
+    loadGazetteer()
+      .then(() => setLoaded((count) => count + 1))
+      .catch(() => setFailed(true));
+  };
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const results = useMemo(() => searchPlaces(query), [query, loaded]);
 
   useEffect(() => setHighlighted(0), [query]);
 
@@ -80,7 +92,7 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({ onPick }) => {
         <input
           type="text"
           value={query}
-          placeholder="Wellington, Svalbard, Point Nemo..."
+          placeholder="A town, a country, Point Nemo..."
           role="combobox"
           aria-expanded={showResults}
           aria-controls={listId}
@@ -93,8 +105,12 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({ onPick }) => {
           onChange={(event) => {
             setQuery(event.target.value);
             setOpen(true);
+            load();
           }}
-          onFocus={() => setOpen(true)}
+          onFocus={() => {
+            setOpen(true);
+            load();
+          }}
           onKeyDown={onKeyDown}
           className="place-input"
         />
@@ -103,8 +119,9 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({ onPick }) => {
         <ul id={listId} role="listbox" className="place-results">
           {results.length === 0 && (
             <li className="place-empty">
-              Nothing found. Try a city, country or ocean, or set the
-              coordinates below.
+              {loaded === 0 && !failed
+                ? "Looking through fifty thousand places…"
+                : "Nothing found. Try a town, a region after a comma (Perth, Scotland), or set the coordinates below."}
             </li>
           )}
           {results.map((place, position) => (
@@ -130,6 +147,9 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({ onPick }) => {
           ))}
         </ul>
       )}
+      <p className="place-credit">
+        Places from <a href="https://www.geonames.org" target="_blank" rel="noreferrer">GeoNames</a>, CC BY 4.0.
+      </p>
     </div>
   );
 };

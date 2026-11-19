@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { northPole, southPole } from "../constants";
 import DestinationType from "../types/DestinationType";
 import { GlobalCoordinates } from "../types/GlobalCoordinates";
 import { HatDesign } from "../types/HatDesign";
@@ -27,23 +26,6 @@ import SizeCalculator from "./SizeCalculator";
 import PageLayout from "./ui/PageLayout";
 import Button from "./ui/Button";
 import "./Design.css";
-
-type LocationType =
-  | "North Pole"
-  | "South Pole"
-  | "Current Location"
-  | "Custom Location";
-
-const sameCoordinates = (a: GlobalCoordinates, b: GlobalCoordinates) =>
-  Math.abs(a.latitude - b.latitude) < 0.005 &&
-  Math.abs(a.longitude - b.longitude) < 0.005;
-
-/** Which preset, if any, the current coordinates correspond to. */
-const locationTypeFor = (coordinates: GlobalCoordinates): LocationType => {
-  if (sameCoordinates(coordinates, northPole)) return "North Pole";
-  if (sameCoordinates(coordinates, southPole)) return "South Pole";
-  return "Custom Location";
-};
 
 const hexOf = (colour: RGB) =>
   `#${colour.map((channel) => Math.round(channel).toString(16).padStart(2, "0")).join("")}`;
@@ -73,9 +55,6 @@ const Design: React.FC = () => {
   );
   const params = useMemo(() => designToSearchParams(design), [design]);
 
-  const [locationType, setLocationType] = useState<LocationType>(() =>
-    locationTypeFor(design.orientation.coordinates)
-  );
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [showProblems, setShowProblems] = useState(false);
   const [gauge, setGauge] = useState<Gauge>(() => readGauge());
@@ -113,30 +92,25 @@ const Design: React.FC = () => {
   const setCoordinates = (coordinates: GlobalCoordinates) =>
     updateOrientation({ coordinates });
 
-  const handleLocationChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selected = e.target.value as LocationType;
-    setLocationType(selected);
-    setPlaceLabel(null);
+  const [locating, setLocating] = useState<string | null>(null);
 
-    switch (selected) {
-      case "North Pole":
-        setCoordinates(northPole);
-        break;
-      case "South Pole":
-        setCoordinates(southPole);
-        break;
-      case "Current Location":
-        navigator.geolocation.getCurrentPosition((position) =>
-          setCoordinates({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          })
-        );
-        break;
-      case "Custom Location":
-      default:
-        break;
-    }
+  // Where the knitter is: the one place no list can offer.
+  const locate = () => {
+    setLocating("Finding where you are…");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCoordinates({
+          latitude: Math.round(position.coords.latitude * 100) / 100,
+          longitude: Math.round(position.coords.longitude * 100) / 100,
+        });
+        setPlaceLabel("where you are now");
+        setLocating(null);
+      },
+      () =>
+        setLocating(
+          "Your location is not available. Search for a place, or type its coordinates."
+        )
+    );
   };
 
   const handleKnitAndDye = () => {
@@ -283,35 +257,30 @@ const Design: React.FC = () => {
         <PlaceSearch
           onPick={(coordinates, place) => {
             setCoordinates(coordinates);
-            setLocationType(locationTypeFor(coordinates));
             setPlaceLabel(`${place.name}, ${place.region}`);
+            setLocating(null);
           }}
         />
 
-        <div className="design-field">
-          <label>
-            <span className="design-field-label">Or a preset</span>
-            <select value={locationType} onChange={handleLocationChange}>
-              <option value="North Pole">North Pole</option>
-              <option value="South Pole">South Pole</option>
-              <option value="Current Location">Where I am now</option>
-              <option value="Custom Location">Somewhere else</option>
-            </select>
-          </label>
+        <div className="design-row">
+          <CoordinatesInput
+            coordinates={design.orientation.coordinates}
+            setCoordinates={(coordinates) => {
+              setCoordinates(coordinates);
+              setPlaceLabel(null);
+              setLocating(null);
+            }}
+          />
+          <div className="design-field design-field-button">
+            <Button variant="secondary" onClick={locate}>
+              Where I am now
+            </Button>
+          </div>
         </div>
 
-        <CoordinatesInput
-          coordinates={design.orientation.coordinates}
-          setCoordinates={(coordinates) => {
-            setCoordinates(coordinates);
-            setLocationType(locationTypeFor(coordinates));
-            setPlaceLabel(null);
-          }}
-        />
-
-        {placeLabel && (
+        {(placeLabel || locating) && (
           <p className="design-hint" style={{ marginTop: "-8px" }}>
-            Centred on {placeLabel}.
+            {locating ?? `Centred on ${placeLabel}.`}
           </p>
         )}
 
