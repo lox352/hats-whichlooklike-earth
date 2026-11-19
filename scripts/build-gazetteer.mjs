@@ -62,6 +62,20 @@ const value = (row, name) => row[name]?.value;
 const settlementKinds = new Set(
   (await ask("SELECT ?kind WHERE { ?kind wdt:P279* wd:Q486972 }")).map((row) => id(value(row, "kind"))),
 );
+/*
+ * Less what counts as a settlement in Wikidata but is no place to look for:
+ * a metropolitan area, an urban area, a capital region. Named one by one,
+ * and only as a place's own kinds: Wikidata's tree of kinds has "city in the
+ * United States" under "urban area" by some path, so what is below these
+ * would take New York with it.
+ */
+const areaKinds = new Set([
+  "Q1907114", "Q2342385", "Q702492", "Q3175539", "Q1768043", "Q3270419", "Q1062177", "Q5951278",
+  "Q104774075", "Q104774089", "Q1132300", "Q2578201", "Q3201456", "Q3931970", "Q4056979",
+  "Q113379906", "Q11643604", "Q11962746", "Q5124028", "Q244793", "Q7899896",
+]);
+// And the ones named for being one, whatever kind they are given.
+const areaName = /(metropolitan area|metropolitan region|metropolitan statistical area|urban area|urban agglomeration|agglomeration|conurbation|urban corridor)$|^metropolitan |\sRegion$/i;
 console.log(`${settlementKinds.size} kinds of settlement`);
 
 // The countries: every one a sizeable place is in, and every one with an ISO code.
@@ -149,7 +163,8 @@ const keep = (row, country) => {
   const place = id(value(row, "place"));
   if (places.has(place)) return;
   const kinds = (value(row, "kinds") ?? "").split(" ").filter(Boolean).map(id);
-  if (!kinds.some((kind) => settlementKinds.has(kind))) return;
+  // A settlement of some kind other than an area's.
+  if (!kinds.some((kind) => settlementKinds.has(kind) && !areaKinds.has(kind))) return;
   const at = /Point\(([-\d.eE]+) ([-\d.eE]+)\)/.exec(value(row, "where") ?? "");
   if (!at) return;
   const longitude = Number(at[1]);
@@ -219,7 +234,20 @@ for (let start = 0; start < unnamed.length; start += 300) {
     }
   }
 }
-for (const [key, place] of places) if (!place.name) places.delete(key);
+for (const [key, place] of places) if (!place.name || areaName.test(place.name)) places.delete(key);
+// "Greater" a place in the same country, and bigger than it, is the place and its suburbs: the place is kept, not both.
+{
+  const biggest = new Map();
+  for (const place of places.values()) {
+    const key = `${place.country}|${place.name}`;
+    biggest.set(key, Math.max(biggest.get(key) ?? 0, place.population));
+  }
+  for (const [key, place] of places) {
+    const core = /^Greater (.+)$/.exec(place.name)?.[1];
+    const coreSize = core && biggest.get(`${place.country}|${core}`);
+    if (coreSize !== undefined && coreSize !== null && place.population >= coreSize) places.delete(key);
+  }
+}
 
 /*
  * Each place's first-level region: up its "located in" chain to the last
@@ -251,22 +279,53 @@ for (let level = 0; level < 10 && asking.size > 0; level++) {
   console.log(`regions, level ${level + 1}: ${up.size} known`);
 }
 
-const regionOf = (place) => {
-  // Walk up from each parent until the next step is the country, or there is none.
+// A country or territory of today: one with an ISO code. Wikidata has a few places "in" a state as their country.
+const nation = (entity) => Boolean(countries.get(entity)?.code);
+// A level some countries have between their regions and themselves, which no one names a place by.
+const between = /^(metropolitan|mainland|continental) /i;
+
+/** The entity a place's first-level region is: the last before its country, or a territory of it. */
+const regionEntityOf = (place) => {
+  // Walk up from each parent until the next step is the country, or a territory of it, or there is none.
   for (const start of place.parents) {
     let at = start;
+    let below;
     const seen = new Set();
     while (at && !seen.has(at)) {
       seen.add(at);
       if (at === place.country) return undefined;
+      if (nation(at)) return at;
       const next = (up.get(at) ?? []).filter((parent) => !seen.has(parent));
-      if (next.length === 0 || next.includes(place.country) || next.some((parent) => countries.has(parent))) {
-        return labels.get(at);
+      const territory = next.find((parent) => parent !== place.country && nation(parent));
+      if (territory) return territory;
+      if (next.length === 0 || next.includes(place.country)) {
+        const name = labels.get(at);
+        return name && between.test(name) && below ? below : at;
       }
+      below = at;
       at = next[0];
     }
   }
   return undefined;
+};
+
+// Names for the regions that came without one in English.
+const regionEntities = new Map([...places.values()].map((place) => [place.place, regionEntityOf(place)]));
+const nameless = [...new Set(regionEntities.values())].filter((entity) => entity && !nation(entity) && !labels.has(entity));
+for (let start = 0; start < nameless.length; start += 300) {
+  const batch = nameless.slice(start, start + 300);
+  const rows = await ask(`SELECT ?x ?label ?lang WHERE {
+    VALUES ?x { ${batch.map((one) => `wd:${one}`).join(" ")} }
+    ?x rdfs:label ?label. BIND(LANG(?label) AS ?lang) FILTER(?lang IN ("en", "mul", "en-gb", "en-us"))
+  }`);
+  for (const row of rows) if (!labels.has(id(value(row, "x")))) labels.set(id(value(row, "x")), value(row, "label"));
+}
+console.log(`${nameless.length} regions named afresh`);
+
+const regionOf = (place) => {
+  const entity = regionEntities.get(place.place);
+  if (!entity) return undefined;
+  return nation(entity) ? countryName(entity) : labels.get(entity);
 };
 
 const fold = (text) => text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -281,12 +340,10 @@ for (const place of sorted) {
   const country = countryName(place.country);
   const first = regionOf(place);
   const region = first && first !== place.name && first !== country && fold(first) !== fold(place.name) ? `${first}, ${country}` : country;
-  // A town and the municipality of the same name, both settlements, are one place: the bigger is kept.
+  // One of each name in a region, the biggest: two the search showed alike could not be told apart, and a town and its municipality are one place.
   const key = `${fold(place.name)}|${region}`;
-  const twins = near.get(key) ?? [];
-  if (twins.some((twin) => Math.abs(twin.latitude - place.latitude) < 0.3 && Math.abs(twin.longitude - place.longitude) < 0.3)) continue;
-  twins.push(place);
-  near.set(key, twins);
+  if (near.has(key)) continue;
+  near.set(key, true);
   if (!regionIndex.has(region)) {
     regionIndex.set(region, regions.length);
     regions.push(region);

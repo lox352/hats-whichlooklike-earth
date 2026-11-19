@@ -9,7 +9,7 @@ interface PlaceSearchProps {
 /**
  * Find somewhere by name instead of typing coordinates.
  *
- * Searches some fifty thousand places from GeoNames, fetched as one file the
+ * Searches some sixty thousand places from Wikidata, fetched as one file the
  * first time the field is used (see helpers/place-search); until it is in,
  * the hand-picked landmarks answer. Implemented as a listbox with keyboard
  * support, because picking from a dropdown with the arrow keys is the normal
@@ -120,7 +120,7 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({ onPick }) => {
           {results.length === 0 && (
             <li className="place-empty">
               {loaded === 0 && !failed
-                ? "Looking through fifty thousand places…"
+                ? "Looking through sixty thousand places…"
                 : "Nothing found. Try a town, a region after a comma (Perth, Scotland), or set the coordinates below."}
             </li>
           )}
@@ -147,9 +147,6 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({ onPick }) => {
           ))}
         </ul>
       )}
-      <p className="place-credit">
-        Places from <a href="https://www.geonames.org" target="_blank" rel="noreferrer">GeoNames</a>, CC BY 4.0.
-      </p>
     </div>
   );
 };

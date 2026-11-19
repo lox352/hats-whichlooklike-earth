@@ -10,7 +10,7 @@ export interface Place extends GlobalCoordinates {
  * The hand-picked places: the ones that are not towns - the poles, Point
  * Nemo, the oceans, the deserts, the peaks - and a few hundred cities across
  * every populated region. They are bundled, so a search answers at once while
- * the fifty thousand towns of gazetteer.json load (see helpers/place-search),
+ * the sixty thousand towns of gazetteer.json load (see helpers/place-search),
  * and they stay in the list after: a city here gives way to the same city
  * there, which knows its region better.
  */
