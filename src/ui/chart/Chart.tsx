@@ -105,6 +105,8 @@ interface ChartProps {
   markers?: MarkerLine[];
   /** Told of the stitch tapped, and of none when it is let go: to light up what it belongs to. */
   onPicked?: (id: number | undefined) => void;
+  /** How big a stitch is drawn to begin with, in pixels: smaller shows more of a picture at once. */
+  startZoom?: number;
 }
 
 /**
@@ -143,12 +145,13 @@ const Chart: React.FC<ChartProps> = ({
   layout: given,
   markers,
   onPicked,
+  startZoom = 16,
 }) => {
   const [picked, setPicked] = useState<number>();
   useEffect(() => onPicked?.(picked), [picked, onPicked]);
   const makeOneLean = stitchNotes?.m1?.lean;
   const closePicker = useCallback(() => setPicked(undefined), []);
-  const [zoom, setZoom] = useState(16);
+  const [zoom, setZoom] = useState(startZoom);
   const { highContrast: contrast, writtenRounds } = useSettings();
   const [textRound, setTextRound] = useState(1);
   const [showText, setShowText] = useState(false);

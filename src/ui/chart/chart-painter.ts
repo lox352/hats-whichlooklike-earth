@@ -102,6 +102,13 @@ export interface ChartOverlay {
    * stitch it names is above it.
    */
   lines?: OverlayLine[];
+  /**
+   * A set of stitches drawn round: every edge where a stitch in it meets
+   * one that is not, or the edge of the fabric, so a place on the picture -
+   * a country, a constellation's sky - reads as one shape, with an ink line
+   * on a halo of paper so it reads over any yarn.
+   */
+  outline?: { has: (id: number) => boolean; ink: string; halo: string };
 }
 
 export interface OverlayLine {
@@ -949,6 +956,7 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
     });
     ctx.globalAlpha = 1;
   }
+  if (overlay?.outline) paintOutline(ctx, overlay.outline, scene, state, firstRow, lastRow);
   if (overlay?.lines?.length) paintLines(ctx, overlay.lines, scene, state);
   if (overlay?.strips) {
     const stripWidth = Math.max(3, Math.round(cell * 0.28));
@@ -961,6 +969,83 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
   }
 
   ctx.restore();
+};
+
+/** The overlay's outline, round the rows from `firstRow` to `lastRow`: see ChartOverlay.outline. */
+const paintOutline = (
+  ctx: Ctx2D,
+  outline: NonNullable<ChartOverlay["outline"]>,
+  scene: ChartScene,
+  state: PaintState,
+  firstRow: number,
+  lastRow: number,
+) => {
+  const { index, layout } = scene;
+  const { left, width, top, height, cell } = state;
+  const rows = layout.rows;
+  const columns = layout.columns;
+  /** The stitch in a row's column, if it has one. */
+  const idAt = (row: number, c: number): number | undefined => {
+    if (row < 1 || row > rows || c < 1 || c > columns) return undefined;
+    let low = index.start[row];
+    let high = index.start[row + 1];
+    while (low < high) {
+      const middle = (low + high) >> 1;
+      if (index.column[middle] < c) low = middle + 1;
+      else high = middle;
+    }
+    return low < index.start[row + 1] && index.column[low] === c ? index.id[low] : undefined;
+  };
+  const inside = (row: number, c: number) => {
+    const id = idAt(row, c);
+    return id !== undefined && outline.has(id);
+  };
+  // What meets a cell on screen, past any row or column closed up.
+  const nextRow = (row: number, step: number) => {
+    let at = row + step;
+    while (at >= 1 && at <= rows && height[at] <= 0) at += step;
+    return at;
+  };
+  const nextColumn = (c: number, step: number) => {
+    let at = c + step;
+    while (at >= 1 && at <= columns && width[at] <= 0) at += step;
+    return at;
+  };
+  const edges: number[] = [];
+  for (let row = Math.max(1, firstRow - 1); row <= Math.min(rows, lastRow + 1); row++) {
+    if (height[row] <= 0) continue;
+    const y0 = top[row];
+    const y1 = top[row] + height[row];
+    for (let k = index.start[row]; k < index.start[row + 1]; k++) {
+      const c = index.column[k];
+      if (width[c] <= 0 || !outline.has(index.id[k])) continue;
+      // Columns count leftwards from the right-hand edge: the next one is to the left.
+      const x0 = left[c];
+      const x1 = left[c] + width[c];
+      if (!inside(nextRow(row, 1), c)) edges.push(x0, y0, x1, y0);
+      if (!inside(nextRow(row, -1), c)) edges.push(x0, y1, x1, y1);
+      if (!inside(row, nextColumn(c, 1))) edges.push(x0, y0, x0, y1);
+      if (!inside(row, nextColumn(c, -1))) edges.push(x1, y0, x1, y1);
+    }
+  }
+  if (edges.length === 0) return;
+  const scale = cell / 16;
+  ctx.lineCap = "square";
+  ctx.setLineDash([]);
+  for (const [colour, lineWidth] of [
+    [outline.halo, Math.max(3, 4 * scale)],
+    [outline.ink, Math.max(1.25, 1.75 * scale)],
+  ] as const) {
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = lineWidth;
+    ctx.globalAlpha = 1;
+    ctx.beginPath();
+    for (let i = 0; i < edges.length; i += 4) {
+      ctx.moveTo(edges[i], edges[i + 1]);
+      ctx.lineTo(edges[i + 2], edges[i + 3]);
+    }
+    ctx.stroke();
+  }
 };
 
 /** The overlay's lines, each between the middles of its two stitches as they are on screen: see ChartOverlay.lines. */

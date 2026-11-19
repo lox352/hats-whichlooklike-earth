@@ -14,7 +14,7 @@ export const PlaceNote: React.FC<{ hat: HatStitch[]; regionKey: string | undefin
       {count !== undefined && (
         <span className="quiet">
           {" "}
-          · {count.toLocaleString()} {count === 1 ? "stitch" : "stitches"} of this hat, lit on the chart
+          · {count.toLocaleString()} {count === 1 ? "stitch" : "stitches"} of this hat, drawn round on the chart
         </span>
       )}
     </span>

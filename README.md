@@ -58,7 +58,9 @@ The hat is still made, settled and dyed as it always was. `src/knitting/`
 is where the two meet: `hat-knitting.ts` reads a hat's stitches as Sweat
 Shop reads a jumper's - the cast-on cast on and the join a step of its own
 after it, the double decrease the s2kp it always was, rounds counted from
-the cast-on, each yarn a slot letter - and the rest of `src/knitting/` is
+the cast-on as the chart has always numbered its rows, so a stitch stands
+exactly where it did on a chart printed before, each yarn a slot letter -
+and the rest of `src/knitting/` is
 the hat's own: its yarns (`yarns.ts`), what it says of its stitches
 (`notes.ts`), the places its stitches land on (`places.ts`), its wool, the
 chart as printed.
@@ -68,8 +70,9 @@ the join a step; older ones are moved on as they are read.
 
 What changed in the copied files, to look for when copying them in again:
 `reading/palette.ts` imports `RGB` from `types/`; `ui/chart/Chart.tsx` tells
-an `onPicked` of the stitch tapped; `ui/chart/chart-painter.ts` can draw
-`lines` between stitches over the chart; `ui/components/KnittingPanel.tsx`
+an `onPicked` of the stitch tapped and opens at a `startZoom`;
+`ui/chart/chart-painter.ts` can draw `lines` between stitches over the chart,
+and an `outline` round a set of them; `ui/components/KnittingPanel.tsx`
 takes a `where` and a `finishing`, and says nothing of the middle of the
 back; the stylesheets use this site's names for the type scale and colours.
 

@@ -33,11 +33,13 @@ import { slotOf } from "./yarns";
  *   gives one (see yarns), so what a yarn is called and looks like stays
  *   yours to choose, and changing it never rebuilds the knitting.
  * - **The rounds.** The machine knits a helix and never says where one round
- *   ends. A round here is every stitch worked into the round before: round 1
- *   is the cast-on, and a stitch is one round above the highest of the
- *   stitches it takes, so each round follows the last without a gap, and no
- *   stitch shares a round with a stitch it was knitted into - a decrease
- *   worked across the beginning of the round goes up with the round it ends.
+ *   ends. They are counted as the hat's chart has always counted its rows,
+ *   so a round has the number it has on a chart printed before: round 1 is
+ *   the cast-on, and a stitch is one round above the middle of the stitches
+ *   it takes - a k2tog's first, an s2kp's centre. Each round follows the
+ *   last without a gap. At the seam, where the helix comes round, a decrease
+ *   ending a round can take the first stitch of that same round with it, as
+ *   it does on the needles when a decrease is worked across the marker.
  */
 
 export const hatPiece: Piece = { id: "hat", label: "Hat" };
@@ -107,7 +109,9 @@ export const hatKnitting = (hatStitches: HatStitch[]): HatKnitting => {
     const worked = hat.links.slice(0, takes).reverse().map(idOfHat);
     const yarn = hat.links.length > takes ? [idOfHat(hat.links[hat.links.length - 1])] : [];
     stitches[id] = { id, links: [...worked, ...yarn], type, slot: slot(hat), piece: hatPiece.id };
-    const round = 1 + Math.max(...worked.map((one) => roundOf[one] ?? 1));
+    // One round above the middle stitch it takes, as the hat's chart has always counted them: see the rounds, above.
+    const middle = idOfHat(hat.links.slice(0, takes)[Math.floor(takes / 2)]);
+    const round = 1 + (roundOf[middle] ?? 1);
     roundOf[id] = round;
     (rounds[round - 1] ??= []).push(id);
   });

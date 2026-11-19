@@ -3,6 +3,8 @@ import { getStitches } from "../helpers/stitches";
 import { hatKnitting, progressFromHat, joinOf } from "./hat-knitting";
 import { isFabric, isStep, worksInto } from "../pattern/Stitch";
 import { layOutSweater } from "../reading/layout";
+import { layOutStitches } from "../helpers/pattern-layout";
+import { printLayout } from "./print-layout";
 import { indexRounds, positionOf, currentRun, totals, endOfRound } from "../reading/progress";
 
 const hat = getStitches(120, 40, "Hemispherical");
@@ -42,12 +44,15 @@ describe("a hat as the knitting reads it", () => {
     expect([...types].every((type) => ["castOn", "join", "k1", "k2tog", "s2kp"].includes(type))).toBe(true);
   });
 
-  it("puts every stitch in a round above every stitch it was knitted into", () => {
-    const roundOf = new Map<number, number>();
-    knitting.rounds.forEach((ids, at) => ids.forEach((id) => roundOf.set(id, at + 1)));
-    for (const stitch of knitting.stitches) {
-      if (!isFabric(stitch) || stitch.type === "castOn") continue;
-      for (const below of worksInto(stitch)) expect(roundOf.get(below)!).toBeLessThan(roundOf.get(stitch.id)!);
+  it("counts its rounds, and stands every stitch, as the hat's chart always has", () => {
+    // A chart printed before, and a row counted on it, still mean the same.
+    for (const [across, rows, method] of [[90, 36, "Pyramidal"], [130, 25, "Hemispherical"], [120, 40, "Hemispherical"]] as const) {
+      const one = getStitches(across, rows, method);
+      const before = layOutStitches(one.filter((stitch) => stitch.id !== 0));
+      const now = printLayout(one);
+      expect(now.numRows).toBe(before.numRows);
+      expect(now.numCols).toBe(before.numCols);
+      for (const stitch of one) if (stitch.id !== 0) expect(now.positions[stitch.id]).toEqual(before.positions[stitch.id]);
     }
     // And the rounds follow one another, each a run of the order of work.
     const order = knitting.rounds.flat();

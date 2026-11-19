@@ -21,10 +21,14 @@ export const nextStitch = (knitting: HatKnitting, progress: number): number | un
 };
 
 /**
- * One place lit on the chart, the rest of the hat faded back: the stitches
- * a tapped stitch's country or ocean has, wherever they fall.
+ * One place drawn round on the chart, as the hat's chart always has: the
+ * country or ocean you are knitting through, or the one a stitch tapped is
+ * in, wherever its stitches fall.
  */
-export const placeOverlay = (hat: HatStitch[], knitting: HatKnitting, key: string, paper: string): ChartOverlay => ({
-  tint: (id) => (regionAt(hat, knitting, id) === key ? undefined : { fill: paper, alpha: 0.68 }),
-});
+export const placeOutline = (
+  hat: HatStitch[],
+  knitting: HatKnitting,
+  key: string,
+  colours: { ink: string; halo: string },
+): ChartOverlay["outline"] => ({ has: (id) => regionAt(hat, knitting, id) === key, ...colours });
 
