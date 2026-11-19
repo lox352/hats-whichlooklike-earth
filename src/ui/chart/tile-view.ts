@@ -57,6 +57,15 @@ export { type Places, Reach, along, reach } from "./scroll-model";
 
 /** A tile's side, in CSS pixels. */
 export const tileSize = 256;
+
+/** Whether a canvas painted opaque reads back transparent at its corner: one with no memory behind it. */
+const blankAt = (ctx: CanvasRenderingContext2D): boolean => {
+  try {
+    return ctx.getImageData(0, 0, 1, 1).data[3] === 0;
+  } catch {
+    return false;
+  }
+};
 /** How far past the box tiles are kept painted, for the next moment's scrolling. */
 const ahead = 128;
 /**
@@ -543,6 +552,11 @@ const registry = (): TileView[] | undefined =>
 export class TileView {
   private tiles = new Map<string, Tile>();
   private spare: HTMLCanvasElement[] = [];
+  /** Tries left at painting tiles a browser had no memory for, and the one waiting: see starved. */
+  private starvedTries = 8;
+  private starvedTimer = 0;
+  /** What brings the chart back if a browser drops or blanks its tiles: see revive. */
+  private readonly offRevive: () => void;
   private content?: TileContent;
   private version = 0;
   private frame = 0;
@@ -715,6 +729,7 @@ export class TileView {
       this.watch.observe(scroller);
     }
     registry()?.push(this);
+    this.offRevive = this.watchForBlanks();
     // Diagnostics for a phone, from the address: see Hud, and .chart-tiles-layered.
     if (/[?&]hud\b/.test(window.location.href)) this.hud = new Hud();
     if (/[?&]tiles=layered\b/.test(window.location.href)) container.classList.add("chart-tiles-layered");
@@ -2422,13 +2437,21 @@ export class TileView {
       tile.canvas.height = side;
     }
     const ctx = tile.canvas.getContext("2d", { alpha: false });
-    if (!ctx) return;
+    if (!ctx) {
+      this.starved();
+      return;
+    }
     ctx.setTransform(this.ratio, 0, 0, this.ratio, -tile.x * this.ratio, -tile.y * this.ratio);
     const region = part
       ? { x: part.x0, y: part.y0, width: part.x1 - part.x0, height: part.y1 - part.y0 }
       : { x: tile.x, y: tile.y, width: tileSize, height: tileSize };
     if (region.width <= 0 || region.height <= 0) return;
     paintRegion(ctx, region, content.scene, state);
+    // A tile with no memory behind it takes the paint and shows nothing: opaque as it is, a painted one reads back opaque.
+    if (!part && this.paints % 16 === 0 && blankAt(ctx)) {
+      this.starved();
+      return;
+    }
     tile.painted = this.version;
     tile.part = part;
     if (!tile.placed) {
@@ -2478,8 +2501,73 @@ export class TileView {
   }
 
   /** Let go of every canvas: a canvas's memory is only given back once it has no size. */
+  /**
+   * The chart painted afresh: every tile in view, as if new. For when a
+   * browser may have thrown the tiles' pictures away, or never shown them -
+   * the page brought back from the history or another tab, the fonts the
+   * numbers are set in come in, the chart scrolled into the window for the
+   * first time. Safari on a phone does both, now and then, and a chart that
+   * waited for its own scroll to paint again stayed blank until touched.
+   */
+  revive() {
+    this.version++;
+    // And the layer's slide over the scroll made again, in case the browser kept one made for a box not laid out yet.
+    if (this.slider) this.slider.made = {};
+    this.starvedTries = 8;
+    this.schedule();
+  }
+
+  private watchForBlanks(): () => void {
+    const onShow = () => this.revive();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") this.revive();
+    };
+    window.addEventListener("pageshow", onShow);
+    document.addEventListener("visibilitychange", onVisible);
+    let live = true;
+    document.fonts?.ready.then(() => {
+      if (live) this.revive();
+    });
+    let seen: IntersectionObserver | undefined;
+    if (typeof IntersectionObserver !== "undefined") {
+      seen = new IntersectionObserver((entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        seen?.disconnect();
+        this.revive();
+      });
+      seen.observe(this.scroller);
+    }
+    return () => {
+      live = false;
+      window.removeEventListener("pageshow", onShow);
+      document.removeEventListener("visibilitychange", onVisible);
+      seen?.disconnect();
+    };
+  }
+
+  /**
+   * A tile the browser had no memory for: Safari on a phone gives a canvas
+   * none past a limit for the whole page, and then neither paints nor shows
+   * it. The spare canvases are let go, and the tiles tried again in a moment,
+   * a few times, each wait longer.
+   */
+  private starved() {
+    for (const canvas of this.spare) canvas.width = canvas.height = 0;
+    this.spare = [];
+    if (this.starvedTimer || this.starvedTries <= 0) return;
+    const wait = 200 * 2 ** (8 - this.starvedTries);
+    this.starvedTries--;
+    this.starvedTimer = window.setTimeout(() => {
+      this.starvedTimer = 0;
+      this.version++;
+      this.schedule();
+    }, wait);
+  }
+
   destroy() {
     this.hud?.remove();
+    this.offRevive();
+    clearTimeout(this.starvedTimer);
     const views = registry();
     if (views?.includes(this)) views.splice(views.indexOf(this), 1);
     cancelAnimationFrame(this.frame);
