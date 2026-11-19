@@ -13,6 +13,8 @@ import type { HatKnitting } from "./hat-knitting";
  */
 
 export interface UnrolledStitch {
+  /** The knitting's id for it. */
+  id: number;
   /** Where it begins and ends across the picture, as fractions of its width; `to` may pass 1, and wraps round. */
   from: number;
   to: number;
@@ -27,15 +29,15 @@ export const unrolled = (hat: HatStitch[], knitting: HatKnitting): UnrolledStitc
       .map((id) => {
         const own = knitting.hatIdOf(id);
         const position = own === undefined ? undefined : hat[own]?.position;
-        return position && { at: turn(-Math.atan2(position.z, position.x) / (2 * Math.PI)), slot: knitting.stitches[id].slot };
+        return position && { id, at: turn(-Math.atan2(position.z, position.x) / (2 * Math.PI)), slot: knitting.stitches[id].slot };
       })
-      .filter((one): one is { at: number; slot: string } => one !== undefined)
+      .filter((one): one is { id: number; at: number; slot: string } => one !== undefined)
       .sort((a, b) => a.at - b.at);
     const n = placed.length;
-    if (n === 1) return [{ from: 0, to: 1, slot: placed[0].slot }];
+    if (n === 1) return [{ id: placed[0].id, from: 0, to: 1, slot: placed[0].slot }];
     return placed.map((one, k) => {
       const previous = k === 0 ? placed[n - 1].at - 1 : placed[k - 1].at;
       const next = k === n - 1 ? placed[0].at + 1 : placed[k + 1].at;
-      return { from: (one.at + previous) / 2, to: (one.at + next) / 2, slot: one.slot };
+      return { id: one.id, from: (one.at + previous) / 2, to: (one.at + next) / 2, slot: one.slot };
     });
   });
