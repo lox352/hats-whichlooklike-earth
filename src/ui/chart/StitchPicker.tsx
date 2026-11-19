@@ -100,12 +100,14 @@ const StitchPicker: React.FC<{
   // Above the stitch, unless that would run off the top of the chart, or of what is on screen of it.
   const below = y < 96 || moved.current.below;
   const here = target === progress;
+  // A ring round the stitch, never so small it is lost when zoomed out.
+  const ring = Math.max(cell + 8, 16);
 
   return (
     <>
       <div
         className="chart-picked"
-        style={{ left: x - 2, top: y - 2, width: cell + 4, height: cell + 4 }}
+        style={{ left: x + cell / 2 - ring / 2, top: y + cell / 2 - ring / 2, width: ring, height: ring }}
         aria-hidden="true"
       />
       <div

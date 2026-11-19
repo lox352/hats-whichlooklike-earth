@@ -43,8 +43,13 @@ export const brimNeedlesFor = (needles: number): number => {
   return needleSizes[Math.max(at - 2, 0)];
 };
 
-/** A beanie's brim, unfolded, in centimetres. */
-export const defaultBrimDepth = 5;
+/**
+ * A beanie's brim, unfolded, in centimetres. Patterns rib one to two inches,
+ * two and a half to five centimetres, for a brim that is not folded up - more
+ * is a cuff, made to turn back - on a hat twenty-odd centimetres tall: about
+ * a sixth of it. Three is that share of the hat this site starts from.
+ */
+export const defaultBrimDepth = 3;
 
 /** A brim needs a cast-on, a round of rib at least, and the round that increases. */
 export const minimumBrimRounds = 3;

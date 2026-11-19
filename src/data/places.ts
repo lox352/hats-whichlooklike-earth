@@ -7,13 +7,12 @@ export interface Place extends GlobalCoordinates {
 }
 
 /**
- * A hand-picked gazetteer, bundled rather than fetched so search works offline
- * and costs no request.
- *
- * It is deliberately small: enough coverage to find somewhere meaningful to
- * put on a hat, without shipping a real geonames database. Entries are large
- * cities across every populated region, plus the landmarks and stretches of
- * ocean that make a striking pattern.
+ * The hand-picked places: the ones that are not towns - the poles, Point
+ * Nemo, the oceans, the deserts, the peaks - and a few hundred cities across
+ * every populated region. They are bundled, so a search answers at once while
+ * the fifty thousand towns of gazetteer.json load (see helpers/place-search),
+ * and they stay in the list after: a city here gives way to the same city
+ * there, which knows its region better.
  */
 export const places: Place[] = [
   { name: "London", region: "United Kingdom", latitude: 51.51, longitude: -0.13 },
