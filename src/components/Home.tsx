@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { SavedPattern } from "../types/SavedPattern";
 import {
@@ -13,7 +13,7 @@ import { chartPath, patternPath, percentKnitted } from "../knitting/paths";
 import { positionOf, totals, whereYouAre } from "../reading/progress";
 import { useKnittingTime } from "../ui/useKnittingTime";
 import { TimeLine } from "../ui/components/KnittingTime";
-import ChartThumb from "./ChartThumb";
+import MapThumb from "./MapThumb";
 import PageLayout from "./ui/PageLayout";
 import Button from "./ui/Button";
 import Dialog from "./ui/Dialog";
@@ -40,10 +40,6 @@ const RevealSection: React.FC<{ children: React.ReactNode }> = ({
   );
 };
 
-/** A colour from the stylesheet, as a canvas needs it. */
-const token = (name: string, fallback: string) =>
-  getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
-
 const PatternCard: React.FC<{
   pattern: SavedPattern;
   onRename: () => void;
@@ -55,7 +51,6 @@ const PatternCard: React.FC<{
   const position = positionOf(reading.stitches, pattern.progress, reading.index);
   const counts = totals(reading.index, pattern.progress);
   const time = useKnittingTime(pattern.id, reading.stitches, pattern.progress);
-  const paper = useMemo(() => token("--paper-raised", "#fbf8f1"), []);
   const finished = position.finished;
   const started = counts.worked > 0;
 
@@ -64,9 +59,9 @@ const PatternCard: React.FC<{
       ref={ref}
       className={`pattern-card reveal${shown ? " reveal-shown" : ""}`}
     >
-      {/* The hat's own picture, as it is knitted: a tap opens its page. */}
+      {/* The map the hat is a picture of: a tap opens its page. */}
       <Link to={patternPath(pattern.id)} className="pattern-thumb" aria-label={`Open ${pattern.name ?? "this hat"}`}>
-        <ChartThumb reading={reading} progress={pattern.progress} paper={paper} />
+        <MapThumb hat={pattern.stitches} reading={reading} />
       </Link>
       <div className="pattern-card-head">
         <h3 className="pattern-name">
